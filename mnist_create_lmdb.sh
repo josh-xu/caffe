@@ -1,0 +1,1 @@
+examples/mnist/create_mnist.sh

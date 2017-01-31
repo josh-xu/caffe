@@ -1,0 +1,1 @@
+../src/caffe/layers/inner_product_layer.cpp

@@ -1,0 +1,1 @@
+../include/caffe/layers/inner_product_layer.hpp

@@ -1,0 +1,1 @@
+examples/mnist/resume_training_mnist.sh

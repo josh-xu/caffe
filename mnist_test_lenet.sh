@@ -1,0 +1,1 @@
+examples/mnist/test_lenet.sh
