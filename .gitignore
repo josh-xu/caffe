@@ -5,7 +5,6 @@
 .travis.yml
 
 build/
-data/
 distribute/
 docker/
 docs/
