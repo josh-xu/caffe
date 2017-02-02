@@ -770,7 +770,7 @@ void Net<Dtype>::CopyTrainedLayersFrom(const NetParameter& param) {
     // added by xujiang
     std::cout << source_layer.name() << " ComputeBlobMask\n" ;
     // virtual function defined, will not error out if not inner_product_layer or conv_layer!
-    layers_[target_layer_id]->ComputeBlobMask(0.3) ; // ratio
+    layers_[target_layer_id]->ComputeBlobMask(0.9) ; // ratio
     // added by xujiang
   }
 }
