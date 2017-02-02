@@ -39,15 +39,15 @@ void ConvolutionLayer<Dtype>::ComputeBlobMask(float ratio) {
     // calculate min max value of weight
     // cpu_data()???
     const Dtype *weight = this->blobs_[0]->cpu_data() ;
-    Dtype min_weight = weight[0] ;
-    Dtype max_weight = weight[0] ;
+    // Dtype min_weight = weight[0] ;
+    //Dtype max_weight = weight[0] ;
     vector<Dtype> sort_weight(count) ;
 
     for (int i = 0; i < count; i++) {
         sort_weight[i] = fabs(weight[i]) ;
     }
     sort(sort_weight.begin(), sort_weight.end()) ;
-    max_weight = sort_weight[count - 1] ;
+    //max_weight = sort_weight[count - 1] ;
 
     std::cout << "sort_weight[0]: " << sort_weight[0] << " " <<
                      "sort_weight[count - 1]: " << sort_weight[count - 1] << "\n" ;
@@ -77,7 +77,7 @@ void ConvolutionLayer<Dtype>::ComputeBlobMask(float ratio) {
 
     // rat is just used to calculate sparsity???
     LOG(INFO) << "sparsity: " << rat / count << "\n" ;
-    min_weight = sort_weight[index] ; // why min_weight is indexed by index???
+    // min_weight = sort_weight[index] ; // why min_weight is indexed by index???
 
     // kmeans_cluster()???
     int nCentroid = CONV_QUNUM ;
@@ -105,7 +105,7 @@ void ConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       int count = this->blobs_[0]->count() ;
 
       // 01/29/2017, FIND BUG, not only inner_product_layer & conv_layer will call this func!!!
-      //std::cout << "@Forward_cpu() count: " << count << "\n" ;
+      // std::cout << "@Forward_cpu() count: " << count << "\n" ;
       for (int i = 0; i < count; i++) {
           //std::cout << this->masks_[i] << " " ;
           if (this->masks_[i]) {
@@ -175,16 +175,25 @@ void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
                 // accumulate here
                 if (this->masks_[j]) {
                     tmpDiff[this->indices_[j]] += weight_diff[j] ;
+                    // added by yuzeng
+                    // this->centroids_[this->indices_[j]] -= weight_diff[j];
+                    //std::cout << "centroids " << this->centroids_[this->indices_[j]] << "\n" ;
                     freq[this->indices_[j]]++ ;
                 }
             }
             for (int j = 0; j < count; j++) {
                 // mean (average) of gradient diff???
                 if (this->masks_[j]) {
-                    weight_diff[j] = tmpDiff[this->indices_[j]] / freq[this->indices_[j]] ;
+                    // weight_diff[j] = tmpDiff[this->indices_[j]] / freq[this->indices_[j]] ;
+                    // added by yuzeng
+                    this->centroids_[this->indices_[j]] -= LR * weight_diff[j]/freq[this->indices_[j]];
                 }
             }
         }
+
+        //for (int j=0; j< CONV_QUNUM; j++){
+        //	std::cout << " centroids: " << this->centroids_[j] <<"\n";
+        //}
         #endif
         // added by xujiang
 

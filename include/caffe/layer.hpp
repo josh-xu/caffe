@@ -11,9 +11,12 @@
 #include "caffe/proto/caffe.pb.h"
 #include "caffe/util/math_functions.hpp"
 
+#include <limits>
+
 // added by xujiang
 #define CONV_QUNUM 16 // 2^8???
 #define FC_QUNUM 16 // 2^5???
+#define LR 0.01 // added by yuzeng
 
 /**
  Forward declare boost::thread instead of including boost/thread.hpp
@@ -155,10 +158,10 @@ void kmeans_cluster(vector<int> &cLabel, vector<Dtype> &cCentro, Dtype *cWeights
 
             // 01/29/2017, FIND BUG, cClusterSize[k] sometimes is zero, why???
                 // BUG FIXED by reducing CONV_QUNUM...
-            if (cClusterSize[k] == 0) {
+            //if (cClusterSize[k] == 0) {
                 //std::cout << "@@@ Weird Things Happened!!!\n" ;
-                assert(false && "cClusterSize[k] == 0") ;
-            }
+            //    assert(false && "cClusterSize[k] == 0") ;
+            //}
             //std::cout << "cClusterSize[" << k << "]: " << cClusterSize[k] << "\n" ;
             cCentro[k] /= cClusterSize[k] ;
             //std::cout << "cCentro[" << k << "]: " << cCentro[k] << "\n\n" ;

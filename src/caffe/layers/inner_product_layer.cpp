@@ -246,13 +246,17 @@ void InnerProductLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
             // accumulate here
             if (this->masks_[j]) {
                 tmpDiff[this->indices_[j]] += weight_diff[j] ;
+                // added by yuzeng
+                //this->centroids_[this->indices_[j]] -= weight_diff[j];
                 freq[this->indices_[j]]++ ;
             }
         }
         for (int j = 0; j < count; j++) {
             // mean (average) of gradient diff???
             if (this->masks_[j]) {
-                weight_diff[j] = tmpDiff[this->indices_[j]] / freq[this->indices_[j]] ;
+                //weight_diff[j] = tmpDiff[this->indices_[j]] / freq[this->indices_[j]] ;
+                //added by yuzeng
+                this->centroids_[this->indices_[j]] -= LR * weight_diff[j]/freq[this->indices_[j]];
             }
         }
     } else {
