@@ -1,8 +1,4 @@
-.DS_Store
-.Doxyfile
 .build_release
-.github
-.travis.yml
 
 build/
 distribute/

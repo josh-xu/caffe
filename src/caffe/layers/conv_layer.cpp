@@ -196,7 +196,7 @@ void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
                 if (this->masks_[j]) {
                     // weight_diff[j] = tmpDiff[this->indices_[j]] / freq[this->indices_[j]] ;
                     // added by yuzeng
-                    this->centroids_[this->indices_[j]] -= LR * weight_diff[j]/freq[this->indices_[j]];
+                    this->centroids_[this->indices_[j]] -= LR * weight_diff[j]/freq[this->indices_[j]]; // FIXME why use "/freq[]"???
                 }
             }
         }

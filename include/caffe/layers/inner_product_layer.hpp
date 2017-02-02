@@ -7,7 +7,7 @@
 #include "caffe/layer.hpp"
 #include "caffe/proto/caffe.pb.h"
 
-//#define XU_FC
+//#define XU_FC // FIXME yuzeng fc_layer compression not activated!!!
 
 namespace caffe {
 
