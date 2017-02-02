@@ -246,6 +246,8 @@ void InnerProductLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
             // accumulate here
             if (this->masks_[j]) {
                 tmpDiff[this->indices_[j]] += weight_diff[j] ;
+                // xujiang
+                    //this->centroids_[this->indices_[j]] -= weight_diff[j] ;
                 freq[this->indices_[j]]++ ;
             }
         }

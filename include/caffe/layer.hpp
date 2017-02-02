@@ -11,6 +11,8 @@
 #include "caffe/proto/caffe.pb.h"
 #include "caffe/util/math_functions.hpp"
 
+#include <assert.h>
+
 // added by xujiang
 #define CONV_QUNUM 16 // 2^8???
 #define FC_QUNUM 16 // 2^5???
@@ -33,7 +35,9 @@ void kmeans_cluster(vector<int> &cLabel, vector<Dtype> &cCentro, Dtype *cWeights
     // find min max
     Dtype maxWeight = std::numeric_limits<Dtype>::min() ;
     Dtype minWeight = std::numeric_limits<Dtype>::max() ;
+    //std::cout << "\n@print weights\n" ;
     for (int k = 0; k < nWeights; k++) {
+        //std::cout << cWeights[k] << " " ;
         if (mask[k]) {
             if (cWeights[k] > maxWeight) {
                 maxWeight = cWeights[k] ;
@@ -43,11 +47,13 @@ void kmeans_cluster(vector<int> &cLabel, vector<Dtype> &cCentro, Dtype *cWeights
             }
         }
     }
+    //std::cout << "\n" ;
     std::cout << "maxWeight: " << maxWeight << "\n" ;
     std::cout << "minWeight: " << minWeight << "\n" ;
 
     // generate initial centroids linearly
     std::cout << "nCluster should = cCentro.size() " << nCluster << " " << cCentro.size() << "\n" ;
+    std::cout << "\n@print initialized centroids_\n" ;
     for (int k = 0; k < nCluster; k++) {
         cCentro[k] = minWeight + (maxWeight - minWeight) * k / (nCluster - 1) ;
         std::cout << cCentro[k] << " " ;
@@ -81,15 +87,15 @@ void kmeans_cluster(vector<int> &cLabel, vector<Dtype> &cCentro, Dtype *cWeights
         // check convergence
         if (fabs(mPreDistance - mCurDistance) / mPreDistance < 0.01) {
 
-            std::cout << "@print indices_\n" ;
+            //std::cout << "@print indices_\n" ;
             for (int xj = 0; xj < nWeights; xj++) {
                 if (cLabel[xj] == -1 && mask[xj] != 0) {
                     std::cout << "@@@ Weird Things Happened!!!\n" ;
                     assert(false && "cLabel[xj] == -1 && mask[xj] != 0") ;
                 }
-                std::cout << cLabel[xj] << " " ;
+                //std::cout << cLabel[xj] << " " ;
             }
-            std::cout << "\n" ;
+            //std::cout << "\n" ;
 
             // 01/29/2017, FIND BUG, several cCentro[]'s value is nan???
             std::cout << "\n@print centroids_\n" ;

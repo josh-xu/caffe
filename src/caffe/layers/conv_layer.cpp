@@ -105,12 +105,18 @@ void ConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       int count = this->blobs_[0]->count() ;
 
       // 01/29/2017, FIND BUG, not only inner_product_layer & conv_layer will call this func!!!
-      //std::cout << "@Forward_cpu() count: " << count << "\n" ;
+      std::cout << "@Forward_cpu() count: " << count << "\n" ;
+      for (int i = 0; i < 16; i++) {
+          std::cout << this->centroids_[i] << " " ;
+      }
+      std::cout << "\n" ;
+
       for (int i = 0; i < count; i++) {
           //std::cout << this->masks_[i] << " " ;
           if (this->masks_[i]) {
               // weight sharing!!!
               //std::cout << "Forward_cpu weight sharing iteration " << i << "\n" ;
+              //std::cout << this->centroids_[this->indices_[i]] << " " ;
               muweight[i] = this->centroids_[this->indices_[i]] ;
           }
       }
@@ -171,17 +177,24 @@ void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
 
             vector<Dtype> tmpDiff(CONV_QUNUM) ;
             vector<int> freq(CONV_QUNUM) ;
+            std::cout << "@print weight_diff[]\n" ;
             for (int j = 0; j < count; j++) {
                 // accumulate here
                 if (this->masks_[j]) {
                     tmpDiff[this->indices_[j]] += weight_diff[j] ;
+                    // xujiang
+                        std::cout << weight_diff[j] << " " ;
+                        //this->centroids_[this->indices_[j]] -= weight_diff[j] ;
                     freq[this->indices_[j]]++ ;
                 }
             }
+            std::cout << "\n" ;
+
             for (int j = 0; j < count; j++) {
                 // mean (average) of gradient diff???
                 if (this->masks_[j]) {
                     weight_diff[j] = tmpDiff[this->indices_[j]] / freq[this->indices_[j]] ;
+                    this->centroids_[this->indices_[j]] -= (weight_diff[j] / freq[this->indices_[j]]) ;
                 }
             }
         }
