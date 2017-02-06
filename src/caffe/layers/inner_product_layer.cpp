@@ -1,4 +1,7 @@
 #include <vector>
+#include <iostream>
+#include <fstream>
+#include <math.h>
 
 #include "caffe/filler.hpp"
 #include "caffe/layers/inner_product_layer.hpp"
@@ -59,70 +62,175 @@ void InnerProductLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
 template <typename Dtype>
 void InnerProductLayer<Dtype>::ComputeBlobMask(float ratio) {
     // LOG(INFO) is cout???
-    LOG(INFO) << "fc blob mask" << "\n" ;
+    std::ofstream FC;
+    FC.open("/home/yuzeng/caffe/output_FC.log", std::ios_base::app);
+    FC << "FC blob mask" << std::endl ;
 
     // blobs_[]???
     // count()???
-    // FC_QUNUM???
+    // CONV_QUNUM???
+    //this->msk_no = 3; -- del
+    int mask_no = 5;
     int count = this->blobs_[0]->count() ;
     this->masks_.resize(count) ;
+    this->masks1_.resize(count) ;  
+    this->masks2_.resize(count) ;  
+    this->masks3_.resize(count) ;
+    this->masks4_.resize(count) ;
+    this->masks_all.resize(count) ;
     this->indices_.resize(count) ;
     this->centroids_.resize(FC_QUNUM) ;
 
     // calculate min max value of weight
     // cpu_data()???
     const Dtype *weight = this->blobs_[0]->cpu_data() ;
-    Dtype min_weight = weight[0] ;
-    Dtype max_weight = weight[0] ;
+    // Dtype min_weight = weight[0] ;
+    //Dtype max_weight = weight[0] ;
     vector<Dtype> sort_weight(count) ;
 
     for (int i = 0; i < count; i++) {
         sort_weight[i] = fabs(weight[i]) ;
-    }   
+    }
     sort(sort_weight.begin(), sort_weight.end()) ;
-    max_weight = sort_weight[count - 1] ;
+    //max_weight = sort_weight[count - 1] ;
 
-    std::cout << "sort_weight[0]: " << sort_weight[0] << " " <<
+    FC << "sort_weight[0]: " << sort_weight[0] << " " <<
                      "sort_weight[count - 1]: " << sort_weight[count - 1] << "\n" ;
     // what's the usage of index???
     int index = int(count * ratio) ; // int(count * (1 - max_weight)) ;
-    Dtype thr ;
+    
+    vector<Dtype> thr;
+    //thr.resize(mask_no);
+    //for (int i = 0; i < this->msk_no; i++){  // set the thr --yuzeng -- del
+    FC << "The thrs :" << std::endl;
+    for (int i = 0; i < mask_no; i++){  // --del
+      thr.push_back(0.3); 
+      //FC << thr[i] << "  ";
+    }
+    //FC << std::endl;
+
     // mutable_cpu_data()???
     Dtype *muweight = this->blobs_[0]->mutable_cpu_data() ;
-    float rat = 0 ; // what's the usage of rat???
+    //float rat = 0 ; // what's the usage of rat???
+    vector<float> prune;
+    prune.resize(mask_no);
+    //float prune[0] = 0;
+    //for (int i = 0; i < this->msk_no; i++){  // set the prune number --yuzeng -- del
+    for (int i = 0; i < mask_no; i++){  //-- del
+      prune.push_back(0); 
+    }
 
+    //FC << "masks: " << std::endl;
     if (index > 0) {
-        thr = sort_weight[index - 1] ;
-        LOG(INFO) << "CONV THR: " << thr << " " << ratio << "\n" ;
+        thr[0] = sort_weight[index - 1] ;
+        //FC << "FC THR: " << thr[0] << " " << ratio << std::endl ;
         for (int i = 0; i < count; i++) {
             // do the masking!!!
-            this->masks_[i] = ((weight[i] >= thr || weight[i] < -thr)? 1 : 0) ;
+            this->masks_[i] = ((weight[i] >= thr[0] || weight[i] < -thr[0])? 1 : 0) ;
+            //FC << this->masks_[i];
             muweight[i] *= this->masks_[i] ; // do the prunning by mask!!!
-            rat += (1 - this->masks_[i]) ;
+            prune[0] += (1 - this->masks_[i]) ;
         }
     } else {
         for (int i = 0; i < count; i++) {
             // keep unchanged
             this->masks_[i] = ((weight[i] == 0)? 0 : 1) ;
-            rat += (1 - this->masks_[i]) ;
+            prune[0] += (1 - this->masks_[i]) ;
         }
     }
 
     // rat is just used to calculate sparsity???
-    LOG(INFO) << "sparsity: " << rat / count << "\n" ;
-    min_weight = sort_weight[index] ; // why min_weight is indexed by index???
+    FC << "percent of 0: " << prune[0] / count << std::endl ;
+    FC << "prune[0]: " << prune[0] << std::endl ;
+    // min_weight = sort_weight[index] ; // why min_weight is indexed by index???
+
+    //FC << "masks1: " << std::endl;
+    for(int i = 0; i < count; i++) {
+      float val = 1/pow(2, 1);
+      float set_val = (weight[i] > 0)? val : (-1) *val;
+      this->masks1_[i] = ((fabs(weight[i]) >= (1-thr[1])*val && fabs(weight[i]) <= (1+thr[1])*val)? 0 : 1) ;
+      //FC << this->masks1_[i];
+      muweight[i] = ((this->masks1_[i] == 0) ? set_val :  muweight[i]) ;
+      prune[1] += (1 - this->masks1_[i]);
+    }
+
+    FC << "percent of 1/2: " << prune[1] / count << std::endl ;
+    FC << "prune[1]: " << prune[1] << std::endl ;
+
+    //FC << "masks2: " << std::endl;
+    for(int i = 0; i < count; i++) {
+      float val = 1/pow(2, 2);
+      float set_val = (weight[i] > 0)? val : (-1) *val;
+      this->masks2_[i] = ((fabs(weight[i]) >= (1-thr[2])*val && fabs(weight[i]) <= (1+thr[2])*val)? 0 : 1) ;
+      //FC << this->masks2_[i];
+      muweight[i] = ((this->masks2_[i] == 0) ? set_val :  muweight[i]) ;
+      prune[2] += (1 - this->masks2_[i]);
+    }
+
+    FC << "percent of 1/4: " << prune[2] / count << std::endl ;
+    FC << "prune[2]: " << prune[2] << std::endl ;
+
+    //FC << "masks3: " << std::endl;
+    for(int i = 0; i < count; i++) {
+      float val = 1/pow(2, 3);
+      float set_val = (weight[i] > 0)? val : (-1) *val;
+      this->masks3_[i] = ((fabs(weight[i]) >= (1-thr[3])*val && fabs(weight[i]) <= (1+thr[3])*val)? 0 : 1) ;
+      //FC << this->masks3_[i];
+      muweight[i] = ((this->masks3_[i] == 0) ? set_val :  muweight[i]) ;
+      prune[3] += (1 - this->masks3_[i]);
+    }
+
+    FC << "percent of 1/8: " << prune[3] / count << std::endl ;
+    FC << "prune[3]: " << prune[3] << std::endl ;
+
+    //FC << "masks4: " << std::endl;
+    for(int i = 0; i < count; i++) {
+      float val = 1/pow(2, 4);
+      float set_val = (weight[i] > 0)? val : (-1) *val;
+      this->masks4_[i] = ((fabs(weight[i]) >= (1-thr[4])*val && fabs(weight[i]) <= (1+thr[4])*val)? 0 : 1) ;
+      //FC << this->masks4_[i];
+      muweight[i] = ((this->masks4_[i] == 0) ? set_val :  muweight[i]) ;
+      prune[4] += (1 - this->masks4_[i]);
+    }
+
+    FC << "percent of 1/16:s " << prune[4] / count << std::endl ;
+    FC << "prune[4]: " << prune[4] << std::endl ;
+    
+    // initialize the masks_all;
+
+    for (int i = 0; i < count; i++) {
+      this->masks_all.push_back(1);
+    }
+    
+    //FC << "masks_all :" <<std::endl;
+    for (int i = 0; i < count; i++){
+      //for(int j = 0; j < mask_no; j++)
+      this->masks_all[i] = this->masks_[i] & this->masks1_[i] & this->masks2_[i] & this->masks3_[i] & this->masks4_[i];
+      //FC << this->masks_all[i];
+    }
 
     // kmeans_cluster()???
     int nCentroid = FC_QUNUM ;
     if (nCentroid > count) {
-        //std::cout << "@@@ Weird Things Happened!!!\n" ;
+        //FC << "@@@ Weird Things Happened!!!\n" ;
         assert(false && "nCentroid > count") ;
         nCentroid = count ;
     }
-    std::cout << "nCentroid = FC_QUNUM: " << nCentroid << "\n" ;
-    std::cout << "nWeights = count: " << count << "\n" ;
+    FC << "nCentroid = FC_QUNUM: " << nCentroid << "\n" ;
+    FC << "nWeights = count: " << count << "\n" ;
     kmeans_cluster(this->indices_, this->centroids_, muweight, count,
-                       this->masks_, nCentroid, 1000) ;
+                       this->masks_all, nCentroid, 1000) ;
+    // added by yuzeng
+    float sparsity_post = 0;
+    for (int i = 0; i < count; i++ ){
+      std::cout << this->indices_[i];
+      if (this->indices_[i] == -1)
+        sparsity_post += 1;
+    }
+    FC << "sparsity after kmeans " << sparsity_post / count << std::endl;
+    FC << "prune all: " << sparsity_post << std::endl ;
+    FC << "################# The end of FC layer data ####################" << std::endl;
+    FC.close();
 }
 #endif
 
@@ -158,12 +266,12 @@ void InnerProductLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
 
   // added by xujiang
   #ifdef XU_FC
-  if (this->masks_.size() != 0) {
+  if (this->masks_all.size() != 0) {
       Dtype *muweight = this->blobs_[0]->mutable_cpu_data() ;
       int count = this->blobs_[0]->count() ;
 
       for (int i = 0; i < count; i++) {
-          if (this->masks_[i]) {
+          if (this->masks_all[i]) {
               // weight sharing!!!
               muweight[i] = this->centroids_[this->indices_[i]] ;
           }
@@ -215,9 +323,9 @@ void InnerProductLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
 
     // added by xujiang
     #ifdef XU_FC
-    if (this->masks_.size() != 0) {
+    if (this->masks_all.size() != 0) {
         for (int j = 0; j < count; j++) {
-            weight_diff[j] *= this->masks_[j] ; // don't update if mask = 0
+            weight_diff[j] *= this->masks_all[j] ; // don't update if mask = 0
         }
     } else {
         // supress warning by compiler
@@ -239,12 +347,12 @@ void InnerProductLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
 
     // added by xujiang
     #ifdef XU_FC
-    if (this->masks_.size() != 0) {
+    if (this->masks_all.size() != 0) {
         vector<Dtype> tmpDiff(FC_QUNUM) ;
         vector<int> freq(FC_QUNUM) ;
         for (int j = 0; j < count; j++) {
             // accumulate here
-            if (this->masks_[j]) {
+            if (this->masks_all[j]) {
                 tmpDiff[this->indices_[j]] += weight_diff[j] ;
                 // added by yuzeng
                 //this->centroids_[this->indices_[j]] -= weight_diff[j];
@@ -253,7 +361,7 @@ void InnerProductLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
         }
         for (int j = 0; j < count; j++) {
             // mean (average) of gradient diff???
-            if (this->masks_[j]) {
+            if (this->masks_all[j]) {
                 //weight_diff[j] = tmpDiff[this->indices_[j]] / freq[this->indices_[j]] ;
                 //added by yuzeng
                 this->centroids_[this->indices_[j]] -= LR * weight_diff[j]/freq[this->indices_[j]];

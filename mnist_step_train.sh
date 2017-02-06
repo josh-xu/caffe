@@ -1,0 +1,1 @@
+/home/yuzeng/caffe/examples/mnist/step_training_mnist.sh
