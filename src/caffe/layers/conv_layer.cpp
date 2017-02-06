@@ -1,4 +1,7 @@
 #include <vector>
+#include <iostream>
+#include <fstream>
+#include <math.h>
 
 #include "caffe/layers/conv_layer.hpp"
 
@@ -26,13 +29,22 @@ void ConvolutionLayer<Dtype>::compute_output_shape() {
 template <typename Dtype>
 void ConvolutionLayer<Dtype>::ComputeBlobMask(float ratio) {
     // LOG(INFO) is cout???
-    LOG(INFO) << "conv blob mask" << "\n" ;
+    std::ofstream FD;
+    FD.open("/home/yuzeng/caffe/output_CONV.log", std::ios_base::app);
+    FD << "conv blob mask" << std::endl ;
 
     // blobs_[]???
     // count()???
     // CONV_QUNUM???
+    //this->msk_no = 3; // -- del
+    int mask_no = 5;
     int count = this->blobs_[0]->count() ;
     this->masks_.resize(count) ;
+    this->masks1_.resize(count) ;  
+    this->masks2_.resize(count) ;  
+    this->masks3_.resize(count) ;
+    this->masks4_.resize(count) ;
+    this->masks_all.resize(count) ;
     this->indices_.resize(count) ;
     this->centroids_.resize(CONV_QUNUM) ;
 
@@ -49,47 +61,143 @@ void ConvolutionLayer<Dtype>::ComputeBlobMask(float ratio) {
     sort(sort_weight.begin(), sort_weight.end()) ;
     //max_weight = sort_weight[count - 1] ;
 
-    std::cout << "sort_weight[0]: " << sort_weight[0] << " " <<
+    FD << "sort_weight[0]: " << sort_weight[0] << " " <<
                      "sort_weight[count - 1]: " << sort_weight[count - 1] << "\n" ;
     // what's the usage of index???
     int index = int(count * ratio) ; // int(count * (1 - max_weight)) ;
-    Dtype thr ;
+    //Dtype thr[0] ;
+    vector<Dtype> thr;
+    //thr.resize(mask_no);
+    //for (int i = 0; i < this->msk_no; i++){  // set the thr --yuzeng -- del
+    //FD << "The thrs :" << std::endl;
+    for (int i = 0; i < mask_no; i++){  // --del
+      thr.push_back(0.3); 
+      //FD << thr[i] << "  ";
+    }
+    //FD << std::endl;
+
     // mutable_cpu_data()???
     Dtype *muweight = this->blobs_[0]->mutable_cpu_data() ;
-    float rat = 0 ; // what's the usage of rat???
+    //float rat = 0 ; // what's the usage of rat???
+    vector<float> prune;
+    //prune.resize(mask_no);
+    //float prune[0] = 0;
+    //for (int i = 0; i < this->msk_no; i++){  // set the prune number --yuzeng -- del
+    for (int i = 0; i < mask_no; i++){  //-- del
+      prune.push_back(0); 
+    }
 
+    //FD << "masks: " << std::endl;
     if (index > 0) {
-        thr = sort_weight[index - 1] ;
-        LOG(INFO) << "CONV THR: " << thr << " " << ratio << "\n" ;
+        thr[0] = sort_weight[index - 1] ;
+        //FD << "CONV THR: " << thr[0] << " " << ratio << std::endl ;
         for (int i = 0; i < count; i++) {
             // do the masking!!!
-            this->masks_[i] = ((weight[i] >= thr || weight[i] < -thr)? 1 : 0) ;
+            this->masks_[i] = ((weight[i] >= thr[0] || weight[i] < -thr[0])? 1 : 0) ;
+            //FD << this->masks_[i];
             muweight[i] *= this->masks_[i] ; // do the prunning by mask!!!
-            rat += (1 - this->masks_[i]) ;
+            prune[0] += (1 - this->masks_[i]) ;
         }
     } else {
         for (int i = 0; i < count; i++) {
             // keep unchanged
             this->masks_[i] = ((weight[i] == 0)? 0 : 1) ;
-            rat += (1 - this->masks_[i]) ;
+            prune[0] += (1 - this->masks_[i]) ;
         }
     }
 
     // rat is just used to calculate sparsity???
-    LOG(INFO) << "sparsity: " << rat / count << "\n" ;
+    FD << "percent of 0: " << prune[0] / count << std::endl ;
+    FD << "prune[0]: " << prune[0] << std::endl ;
     // min_weight = sort_weight[index] ; // why min_weight is indexed by index???
+
+    //FD << "masks1: " << std::endl;
+    for(int i = 0; i < count; i++) {
+      float val = 1/pow(2, 1);
+      float set_val = (weight[i] > 0)? val : (-1) *val; 
+      this->masks1_[i] = ((fabs(weight[i]) >= (1-thr[1])*val && fabs(weight[i]) <= (1+thr[1])*val)? 0 : 1) ;
+      //FD << this->masks1_[i];
+      muweight[i] = ((this->masks1_[i] == 0) ? set_val :  muweight[i]) ;
+      prune[1] += (1 - this->masks1_[i]);
+    }
+
+    FD << "percent of 1/2: " << prune[1] / count << std::endl ;
+    FD << "prune[1]: " << prune[1] << std::endl ;
+
+    //FD << "masks2: " << std::endl;
+    for(int i = 0; i < count; i++) {
+      float val = 1/pow(2, 2);
+      float set_val = (weight[i] > 0)? val : (-1) *val;
+      this->masks2_[i] = ((fabs(weight[i]) >= (1-thr[2])*val && fabs(weight[i]) <= (1+thr[2])*val)? 0 : 1) ;
+      //FD << this->masks2_[i];
+      muweight[i] = ((this->masks2_[i] == 0) ? set_val :  muweight[i]) ;
+      prune[2] += (1 - this->masks2_[i]);
+    }
+
+    FD << "percent of 1/4: " << prune[2] / count << std::endl ;
+    FD << "prune[2]: " << prune[2] << std::endl ;
+
+    //FD << "masks3: " << std::endl;
+    for(int i = 0; i < count; i++) {
+      float val = 1/pow(2, 3);
+      float set_val = (weight[i] > 0)? val : (-1) *val;
+      this->masks3_[i] = ((fabs(weight[i]) >= (1-thr[3])*val && fabs(weight[i]) <= (1+thr[3])*val)? 0 : 1) ;
+      //FD << this->masks3_[i];
+      muweight[i] = ((this->masks3_[i] == 0) ? set_val :  muweight[i]) ;
+      prune[3] += (1 - this->masks3_[i]);
+    }
+
+    FD << "percent of 1/8: " << prune[3] / count << std::endl ;
+    FD << "prune[3]: " << prune[3] << std::endl ;
+
+    //FD << "masks4: " << std::endl;
+    for(int i = 0; i < count; i++) {
+      float val = 1/pow(2, 4);
+      float set_val = (weight[i] > 0)? val : (-1) *val;
+      this->masks4_[i] = ((fabs(weight[i]) >= (1-thr[4])*val && fabs(weight[i]) <= (1+thr[4])*val)? 0 : 1) ;
+      //FD << this->masks4_[i];
+      muweight[i] = ((this->masks4_[i] == 0) ? set_val :  muweight[i]) ;
+      prune[4] += (1 - this->masks4_[i]);
+    }
+
+    FD << "percent of 1/16:s " << prune[4] / count << std::endl ;
+    FD << "prune[4]: " << prune[4] << std::endl ;
+    
+    // initialize the masks_all;
+
+    for (int i = 0; i < count; i++) {
+      this->masks_all.push_back(1);
+    }
+    
+    //FD << "masks_all :" <<std::endl;
+    for (int i = 0; i < count; i++){
+      //for(int j = 0; j < mask_no; j++)
+      this->masks_all[i] = this->masks_[i] & this->masks1_[i] & this->masks2_[i] & this->masks3_[i] & this->masks4_[i];
+      //FD << this->masks_all[i];
+    }
 
     // kmeans_cluster()???
     int nCentroid = CONV_QUNUM ;
     if (nCentroid > count) {
-        //std::cout << "@@@ Weird Things Happened!!!\n" ;
+        //FD << "@@@ Weird Things Happened!!!\n" ;
         assert(false && "nCentroid > count") ;
         nCentroid = count ;
     }
-    std::cout << "nCentroid = CONV_QUNUM: " << nCentroid << "\n" ;
-    std::cout << "nWeights = count: " << count << "\n" ;
+    FD << "nCentroid = CONV_QUNUM: " << nCentroid << "\n" ;
+    FD << "nWeights = count: " << count << "\n" ;
     kmeans_cluster(this->indices_, this->centroids_, muweight, count,
-                       this->masks_, nCentroid, 1000) ;
+                       this->masks_all, nCentroid, 1000) ;
+    // added by yuzeng
+    float sparsity_post = 0;
+    for (int i = 0; i < count; i++ ){
+      std::cout << this->indices_[i];
+      if (this->indices_[i] == -1)
+        sparsity_post += 1;
+    }
+    FD << "sparsity after kmeans " << sparsity_post / count << std::endl;
+    FD << "prune all: " << sparsity_post << std::endl ;
+    FD << "################# The end of conv layer data ####################" << std::endl;
+    FD.close();
 }
 #endif
 
@@ -100,28 +208,28 @@ void ConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   #ifdef XU_CONV
   // 01/29/2017, FIND BUG, not only inner_product_layer & conv_layer will call this func!!!
       // will cause segmentation fault!!!
-  if (this->masks_.size() != 0) {
+  if (this->masks_all.size() != 0) {
       Dtype *muweight = this->blobs_[0]->mutable_cpu_data() ;
       int count = this->blobs_[0]->count() ;
 
       // 01/29/2017, FIND BUG, not only inner_product_layer & conv_layer will call this func!!!
-      //std::cout << "@Forward_cpu() count: " << count << "\n" ;
+      //FD << "@Forward_cpu() count: " << count << "\n" ;
       //for (int i = 0; i < 16; i++) {
-      //    std::cout << this->centroids_[i] << " " ;
+      //    FD << this->centroids_[i] << " " ;
       //}
-      //std::cout << "\n" ;
+      //FD << "\n" ;
 
-      // std::cout << "@Forward_cpu() count: " << count << "\n" ;
+      // FD << "@Forward_cpu() count: " << count << "\n" ;
       for (int i = 0; i < count; i++) {
-          //std::cout << this->masks_[i] << " " ;
-          if (this->masks_[i]) {
+          //FD << this->masks_[i] << " " ;
+          if (this->masks_all[i]) {
               // weight sharing!!!
-              //std::cout << "Forward_cpu weight sharing iteration " << i << "\n" ;
-              //std::cout << this->centroids_[this->indices_[i]] << " " ;
+              //FD << "Forward_cpu weight sharing iteration " << i << "\n" ;
+              //FD << this->centroids_[this->indices_[i]] << " " ;
               muweight[i] = this->centroids_[this->indices_[i]] ;
           }
       }
-      //std::cout << "\n" ;
+      //FD << "\n" ;
   }
   #endif
   // added by xujiang
@@ -168,32 +276,32 @@ void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
 
         // added by xujiang
         #ifdef XU_CONV
-        if (this->masks_.size() != 0) {
+        if (this->masks_all.size() != 0) {
             //Dtype *weight_diff = this->blobs_[0]->mutable_cpu_diff() ; // added previously!
             int count = this->blobs_[0]->count() ;
 
             for (int j = 0; j < count; j++) {
-                weight_diff[j] *= this->masks_[j] ; // don't update if mask = 0
+                weight_diff[j] *= this->masks_all[j] ; // don't update if mask = 0
             }
 
             vector<Dtype> tmpDiff(CONV_QUNUM) ;
             vector<int> freq(CONV_QUNUM) ;
-            //std::cout << "@print weight_diff[]\n" ;
+            //FD << "@print weight_diff[]\n" ;
             for (int j = 0; j < count; j++) {
                 // accumulate here
-                if (this->masks_[j]) {
+                if (this->masks_all[j]) {
                     tmpDiff[this->indices_[j]] += weight_diff[j] ;
                     // added by yuzeng
                     // this->centroids_[this->indices_[j]] -= weight_diff[j];
-                    //std::cout << "centroids " << this->centroids_[this->indices_[j]] << "\n" ;
+                    //FD << "centroids " << this->centroids_[this->indices_[j]] << "\n" ;
                     freq[this->indices_[j]]++ ;
                 }
             }
-            //std::cout << "\n" ;
+            //FD << "\n" ;
 
             for (int j = 0; j < count; j++) {
                 // mean (average) of gradient diff???
-                if (this->masks_[j]) {
+                if (this->masks_all[j]) {
                     // weight_diff[j] = tmpDiff[this->indices_[j]] / freq[this->indices_[j]] ;
                     // added by yuzeng
                     this->centroids_[this->indices_[j]] -= LR * weight_diff[j]/freq[this->indices_[j]]; // FIXME why use "/freq[]"???
@@ -202,7 +310,7 @@ void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
         }
 
         //for (int j=0; j< CONV_QUNUM; j++){
-        //	std::cout << " centroids: " << this->centroids_[j] <<"\n";
+        //	FD << " centroids: " << this->centroids_[j] <<"\n";
         //}
         #endif
         // added by xujiang

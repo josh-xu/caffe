@@ -217,7 +217,16 @@ class Layer {
   virtual ~Layer() {}
 
 // added by xujiang
-vector<int> masks_ ;
+vector<int> masks_;
+vector<int> masks1_; // -- del
+vector<int> masks2_; // -- del
+vector<int> masks3_;
+vector<int> masks4_;
+//vector<int> masks_[0] ;
+//vector<int> masks_[1] ;
+//vector< vector<int> > msk_ ;
+//int msk_no;
+vector<int> masks_all;
 vector<int> indices_ ;
 vector<Dtype> centroids_ ;
 
