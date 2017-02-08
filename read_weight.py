@@ -13,7 +13,7 @@ from compiler.ast import flatten
 def drawHist(weights):
     #the first parameter is the variable to be plot
     #the second parameter is the number of divided space
-    pyplot.hist(weights, 100)
+    pyplot.hist(weights, 1000)
     pyplot.xlabel('weights')
     pyplot.ylabel('Frequency')
     pyplot.title('Weights of the network')
@@ -26,7 +26,7 @@ np.set_printoptions(threshold='nan')
 # MODEL_FILE = 'caffe_deploy.prototxt'
 MODEL_FILE = '/home/yuzeng/caffe/examples/mnist/lenet.prototxt'
 # the trained caffe model
-PRETRAIN_FILE = '/home/yuzeng/caffe/examples/mnist/lenet_iter_10000.caffemodel'
+PRETRAIN_FILE = '/home/yuzeng/caffe/examples/mnist/lenet_iter_30000.caffemodel'
 
 # file for storing the parameters
 params_txt = 'params.txt'
@@ -70,6 +70,7 @@ for param_name in net.params.keys():
         pf.write('%f, ' % b)
 
     pf.write('\n\n')
+    drawHist(weight)
 
 
 

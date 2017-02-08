@@ -19,6 +19,8 @@
 #define FC_QUNUM 16 // 2^5???
 #define LR 0.01 // added by yuzeng
 
+#define TWO_BIT 
+
 /**
  Forward declare boost::thread instead of including boost/thread.hpp
  to avoid a boost/NVCC issues (#1009, #1010) on OSX.
@@ -50,17 +52,17 @@ void kmeans_cluster(vector<int> &cLabel, vector<Dtype> &cCentro, Dtype *cWeights
         }
     }
     //std::cout << "\n" ;
-    std::cout << "maxWeight: " << maxWeight << "\n" ;
-    std::cout << "minWeight: " << minWeight << "\n" ;
+    //std::cout << "maxWeight: " << maxWeight << "\n" ;
+    //std::cout << "minWeight: " << minWeight << "\n" ;
 
     // generate initial centroids linearly
-    std::cout << "nCluster should = cCentro.size() " << nCluster << " " << cCentro.size() << "\n" ;
-    std::cout << "\n@print initialized centroids_\n" ;
+    //std::cout << "nCluster should = cCentro.size() " << nCluster << " " << cCentro.size() << "\n" ;
+    //std::cout << "\n@print initialized centroids_\n" ;
     for (int k = 0; k < nCluster; k++) {
         cCentro[k] = minWeight + (maxWeight - minWeight) * k / (nCluster - 1) ;
-        std::cout << cCentro[k] << " " ;
+        //std::cout << cCentro[k] << " " ;
     }
-    std::cout << "\n" ;
+    //std::cout << "\n" ;
 
     //initialize all label to -1
     for (int k = 0; k < nWeights; k++) {
@@ -100,7 +102,7 @@ void kmeans_cluster(vector<int> &cLabel, vector<Dtype> &cCentro, Dtype *cWeights
             //std::cout << "\n" ;
 
             // 01/29/2017, FIND BUG, several cCentro[]'s value is nan???
-            std::cout << "\n@print centroids_\n" ;
+            std::cout << "@print centroids_\n" ;
             for (int xj = 0; xj < nCluster; xj++) {
                 std::cout << cCentro[xj] << " " ;
             }
@@ -221,7 +223,12 @@ vector<int> masks_;
 vector<int> masks1_; // -- del
 vector<int> masks2_; // -- del
 vector<int> masks3_;
-vector<int> masks4_;
+vector<int> masks4_; 
+vector<int> masks5_;
+#ifdef TWO_BIT
+vector<int> masks5p6_;
+vector<int> masks5p7_;
+#endif
 //vector<int> masks_[0] ;
 //vector<int> masks_[1] ;
 //vector< vector<int> > msk_ ;

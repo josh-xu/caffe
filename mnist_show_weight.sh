@@ -1,0 +1,1 @@
+/home/yuzeng/caffe/examples/mnist/show_weight.sh
