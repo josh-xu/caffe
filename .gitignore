@@ -15,3 +15,6 @@ Makefile.config
 examples/mnist/mnist_train_lmdb/
 examples/mnist/mnist_test_lmdb/
 data/ilsvrc12/
+
+examples/mnist/lenet_iter_10000.caffemodel
+examples/mnist/lenet_iter_10000.solverstate
