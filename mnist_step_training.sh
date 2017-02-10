@@ -1,0 +1,1 @@
+examples/mnist/step_training_mnist.sh

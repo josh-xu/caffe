@@ -30,20 +30,35 @@ template <typename Dtype>
 void ConvolutionLayer<Dtype>::ComputeBlobMask(float ratio) {
     // LOG(INFO) is cout???
     std::ofstream FD;
-    FD.open("/home/yuzeng/caffe/output_CONV.log", std::ios_base::app);
+    //FD.open("/Users/xujiang/technologies/caffe/output_CONV.log", std::ios_base::app);
+    FD.open("/Users/xujiang/technologies/caffe/output_CONV.log", std::fstream::app);
     FD << "conv blob mask" << std::endl ;
 
     // blobs_[]???
     // count()???
     // CONV_QUNUM???
     //this->msk_no = 3; // -- del
-    int mask_no = 5;
+    
+    int count = this->blobs_[0]->count() ;
+    /*int mask_no = 5;
     int count = this->blobs_[0]->count() ;
     this->masks_.resize(count) ;
     this->masks1_.resize(count) ;  
     this->masks2_.resize(count) ;  
     this->masks3_.resize(count) ;
-    this->masks4_.resize(count) ;
+    this->masks4_.resize(count) ;*/
+    // added by xujiang, 02/08/2017
+    // Fix BUG here, 02/09/2017, should push ptr, not masks_ itself, otherwise the masks_ will be copied...
+    this->mask_vec_.push_back(&(this->masks_));
+    this->mask_vec_.push_back(&(this->masks1_));
+    this->mask_vec_.push_back(&(this->masks2_));
+    this->mask_vec_.push_back(&(this->masks3_));
+    this->mask_vec_.push_back(&(this->masks4_));
+    for (vector< vector<int>* >::iterator it = this->mask_vec_.begin();
+             it != this->mask_vec_.end(); it++) {
+        (*it)->resize(count);
+    }
+
     this->masks_all.resize(count) ;
     this->indices_.resize(count) ;
     this->centroids_.resize(CONV_QUNUM) ;
@@ -70,10 +85,16 @@ void ConvolutionLayer<Dtype>::ComputeBlobMask(float ratio) {
     //thr.resize(mask_no);
     //for (int i = 0; i < this->msk_no; i++){  // set the thr --yuzeng -- del
     //FD << "The thrs :" << std::endl;
-    for (int i = 0; i < mask_no; i++){  // --del
-      thr.push_back(0.3); 
+    /*for (int i = 0; i < mask_no; i++){  // --del
+      thr.push_back(0.2); 
       //FD << thr[i] << "  ";
+    }*/
+    // added by xujiang, 02/08/2017
+    for (vector< vector<int>* >::iterator it = this->mask_vec_.begin();
+             it != this->mask_vec_.end(); it++) {
+        thr.push_back(0.2);
     }
+
     //FD << std::endl;
 
     // mutable_cpu_data()???
@@ -83,14 +104,20 @@ void ConvolutionLayer<Dtype>::ComputeBlobMask(float ratio) {
     //prune.resize(mask_no);
     //float prune[0] = 0;
     //for (int i = 0; i < this->msk_no; i++){  // set the prune number --yuzeng -- del
-    for (int i = 0; i < mask_no; i++){  //-- del
+    /*for (int i = 0; i < mask_no; i++){  //-- del
       prune.push_back(0); 
+    }*/
+    // added by xujiang, 02/08/2017
+    for (vector< vector<int>* >::iterator it = this->mask_vec_.begin();
+             it != this->mask_vec_.end(); it++) {
+        prune.push_back(0);
     }
 
     //FD << "masks: " << std::endl;
     if (index > 0) {
         thr[0] = sort_weight[index - 1] ;
         //FD << "CONV THR: " << thr[0] << " " << ratio << std::endl ;
+        std::cout << "CONV THR: " << thr[0] << " " << ratio << std::endl ;
         for (int i = 0; i < count; i++) {
             // do the masking!!!
             this->masks_[i] = ((weight[i] >= thr[0] || weight[i] < -thr[0])? 1 : 0) ;
@@ -111,7 +138,33 @@ void ConvolutionLayer<Dtype>::ComputeBlobMask(float ratio) {
     FD << "prune[0]: " << prune[0] << std::endl ;
     // min_weight = sort_weight[index] ; // why min_weight is indexed by index???
 
-    //FD << "masks1: " << std::endl;
+    // added by xujiang, 02/08/2017
+    vector<int> pow_vec;
+    pow_vec.push_back(0); // not used!!! used to align index...
+    pow_vec.push_back(1);
+    pow_vec.push_back(2);
+    pow_vec.push_back(3);
+    pow_vec.push_back(4);
+    int mask_iter_count = 1;
+    for (vector< vector<int>* >::iterator it = (this->mask_vec_.begin() + 1); // skip mask0
+             it != this->mask_vec_.end(); it++, mask_iter_count++) {
+        for (int i = 0; i < count; i++) {
+            float val = 1/pow(2, pow_vec[mask_iter_count]); // 1 2 3 4
+            float set_val = (weight[i] > 0)? val : (-1) *val;
+            //this->masks1_[i] = ((fabs(weight[i]) >= (1-thr[1])*val && fabs(weight[i]) <= (1+thr[1])*val)? 0 : 1) ;
+            (*(*it))[i] = ((fabs(weight[i]) >= (1-thr[mask_iter_count])*val && fabs(weight[i]) <= (1+thr[mask_iter_count])*val)? 0 : 1) ;
+            //muweight[i] = ((this->masks1_[i] == 0) ? set_val :  muweight[i]) ;
+            muweight[i] = (((*(*it))[i] == 0) ? set_val :  muweight[i]) ;
+            //prune[1] += (1 - this->masks1_[i]);
+            prune[mask_iter_count] += (1 - (*(*it))[i]);
+        }
+        //FD << "percent of 1/2: " << prune[1] / count << std::endl ;
+        //FD << "prune[1]: " << prune[1] << std::endl ;
+        FD << "percent of 1/" << pow(2, pow_vec[mask_iter_count]) << ": " << prune[mask_iter_count] / count << std::endl ;
+        FD << "prune[" << mask_iter_count << "]: " << prune[mask_iter_count] << std::endl ;
+    }
+
+    /*//FD << "masks1: " << std::endl;
     for(int i = 0; i < count; i++) {
       float val = 1/pow(2, 1);
       float set_val = (weight[i] > 0)? val : (-1) *val; 
@@ -160,8 +213,8 @@ void ConvolutionLayer<Dtype>::ComputeBlobMask(float ratio) {
       prune[4] += (1 - this->masks4_[i]);
     }
 
-    FD << "percent of 1/16:s " << prune[4] / count << std::endl ;
-    FD << "prune[4]: " << prune[4] << std::endl ;
+    FD << "percent of 1/16: " << prune[4] / count << std::endl ;
+    FD << "prune[4]: " << prune[4] << std::endl ;*/
     
     // initialize the masks_all;
 
@@ -172,7 +225,13 @@ void ConvolutionLayer<Dtype>::ComputeBlobMask(float ratio) {
     //FD << "masks_all :" <<std::endl;
     for (int i = 0; i < count; i++){
       //for(int j = 0; j < mask_no; j++)
-      this->masks_all[i] = this->masks_[i] & this->masks1_[i] & this->masks2_[i] & this->masks3_[i] & this->masks4_[i];
+      //this->masks_all[i] = this->masks_[i] & this->masks1_[i] & this->masks2_[i] & this->masks3_[i] & this->masks4_[i];
+      // added by xujiang, 02/08/2017
+      this->masks_all[i] = this->masks_[i];
+      for (vector< vector<int>* >::iterator it = (this->mask_vec_.begin() + 1); // skip mask0
+                           it != this->mask_vec_.end(); it++) {
+          this->masks_all[i] = this->masks_all[i] & (*(*it))[i];
+      }
       //FD << this->masks_all[i];
     }
 
@@ -190,7 +249,7 @@ void ConvolutionLayer<Dtype>::ComputeBlobMask(float ratio) {
     // added by yuzeng
     float sparsity_post = 0;
     for (int i = 0; i < count; i++ ){
-      std::cout << this->indices_[i];
+      //std::cout << this->indices_[i];
       if (this->indices_[i] == -1)
         sparsity_post += 1;
     }
@@ -304,7 +363,8 @@ void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
                 if (this->masks_all[j]) {
                     // weight_diff[j] = tmpDiff[this->indices_[j]] / freq[this->indices_[j]] ;
                     // added by yuzeng
-                    this->centroids_[this->indices_[j]] -= LR * weight_diff[j]/freq[this->indices_[j]]; // FIXME why use "/freq[]"???
+                    // MUST use "/freq[]" to update with weight_diff[]'s average!!!
+                    this->centroids_[this->indices_[j]] -= LR * weight_diff[j]/freq[this->indices_[j]];
                 }
             }
         }

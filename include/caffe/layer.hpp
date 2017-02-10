@@ -18,6 +18,8 @@
 #define CONV_QUNUM 16 // 2^8???
 #define FC_QUNUM 16 // 2^5???
 #define LR 0.01 // added by yuzeng
+#define XU_CONV
+#define XU_FC
 
 /**
  Forward declare boost::thread instead of including boost/thread.hpp
@@ -226,6 +228,10 @@ vector<int> masks4_;
 //vector<int> masks_[1] ;
 //vector< vector<int> > msk_ ;
 //int msk_no;
+
+vector< vector<int>* > mask_vec_;
+//int mask_num = 5;
+
 vector<int> masks_all;
 vector<int> indices_ ;
 vector<Dtype> centroids_ ;

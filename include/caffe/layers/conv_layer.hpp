@@ -9,8 +9,6 @@
 
 #include "caffe/layers/base_conv_layer.hpp"
 
-#define XU_CONV
-
 namespace caffe {
 
 /**

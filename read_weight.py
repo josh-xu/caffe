@@ -24,9 +24,9 @@ np.set_printoptions(threshold='nan')
 
 # deploy  file
 # MODEL_FILE = 'caffe_deploy.prototxt'
-MODEL_FILE = '/home/yuzeng/caffe/examples/mnist/lenet.prototxt'
+MODEL_FILE = '/Users/xujiang/technologies/caffe/examples/mnist/lenet.prototxt'
 # the trained caffe model
-PRETRAIN_FILE = '/home/yuzeng/caffe/examples/mnist/lenet_iter_10000.caffemodel'
+PRETRAIN_FILE = '/Users/xujiang/technologies/caffe/examples/mnist/lenet_iter_10000.caffemodel'
 
 # file for storing the parameters
 params_txt = 'params.txt'

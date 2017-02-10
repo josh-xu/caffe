@@ -63,20 +63,34 @@ template <typename Dtype>
 void InnerProductLayer<Dtype>::ComputeBlobMask(float ratio) {
     // LOG(INFO) is cout???
     std::ofstream FC;
-    FC.open("/home/yuzeng/caffe/output_FC.log", std::ios_base::app);
+    //FC.open("/Users/xujiang/technologies/caffe/output_FC.log", std::ios_base::app);
+    FC.open("/Users/xujiang/technologies/caffe/output_FC.log", std::fstream::app);
     FC << "FC blob mask" << std::endl ;
 
     // blobs_[]???
     // count()???
     // CONV_QUNUM???
     //this->msk_no = 3; -- del
-    int mask_no = 5;
+
+    int count = this->blobs_[0]->count() ;
+    /*int mask_no = 5;
     int count = this->blobs_[0]->count() ;
     this->masks_.resize(count) ;
     this->masks1_.resize(count) ;  
     this->masks2_.resize(count) ;  
     this->masks3_.resize(count) ;
-    this->masks4_.resize(count) ;
+    this->masks4_.resize(count) ;*/
+    // added by xujiang, 02/08/2017
+    this->mask_vec_.push_back(&(this->masks_));
+    this->mask_vec_.push_back(&(this->masks1_));
+    this->mask_vec_.push_back(&(this->masks2_));
+    this->mask_vec_.push_back(&(this->masks3_));
+    this->mask_vec_.push_back(&(this->masks4_));
+    for (vector< vector<int>* >::iterator it = this->mask_vec_.begin();
+             it != this->mask_vec_.end(); it++) {
+        (*it)->resize(count);
+    }
+
     this->masks_all.resize(count) ;
     this->indices_.resize(count) ;
     this->centroids_.resize(FC_QUNUM) ;
@@ -102,28 +116,40 @@ void InnerProductLayer<Dtype>::ComputeBlobMask(float ratio) {
     vector<Dtype> thr;
     //thr.resize(mask_no);
     //for (int i = 0; i < this->msk_no; i++){  // set the thr --yuzeng -- del
-    FC << "The thrs :" << std::endl;
-    for (int i = 0; i < mask_no; i++){  // --del
-      thr.push_back(0.3); 
+    //FC << "The thrs :" << std::endl;
+    /*for (int i = 0; i < mask_no; i++){  // --del
+      thr.push_back(0.2); 
       //FC << thr[i] << "  ";
+    }*/
+
+    for (vector< vector<int>* >::iterator it = this->mask_vec_.begin();
+             it != this->mask_vec_.end(); it++) {
+        thr.push_back(0.2);
     }
+
     //FC << std::endl;
 
     // mutable_cpu_data()???
     Dtype *muweight = this->blobs_[0]->mutable_cpu_data() ;
     //float rat = 0 ; // what's the usage of rat???
     vector<float> prune;
-    prune.resize(mask_no);
+    //prune.resize(mask_no);
     //float prune[0] = 0;
     //for (int i = 0; i < this->msk_no; i++){  // set the prune number --yuzeng -- del
-    for (int i = 0; i < mask_no; i++){  //-- del
+    /*for (int i = 0; i < mask_no; i++){  //-- del
       prune.push_back(0); 
+    }*/
+    // added by xujiang, 02/08/2017
+    for (vector< vector<int>* >::iterator it = this->mask_vec_.begin();
+             it != this->mask_vec_.end(); it++) {
+        prune.push_back(0);
     }
 
     //FC << "masks: " << std::endl;
     if (index > 0) {
         thr[0] = sort_weight[index - 1] ;
         //FC << "FC THR: " << thr[0] << " " << ratio << std::endl ;
+        std::cout << "FC THR: " << thr[0] << " " << ratio << std::endl ;
         for (int i = 0; i < count; i++) {
             // do the masking!!!
             this->masks_[i] = ((weight[i] >= thr[0] || weight[i] < -thr[0])? 1 : 0) ;
@@ -144,7 +170,33 @@ void InnerProductLayer<Dtype>::ComputeBlobMask(float ratio) {
     FC << "prune[0]: " << prune[0] << std::endl ;
     // min_weight = sort_weight[index] ; // why min_weight is indexed by index???
 
-    //FC << "masks1: " << std::endl;
+    // added by xujiang, 02/08/2017
+    vector<int> pow_vec;
+    pow_vec.push_back(0); // not used!!! used to align index...
+    pow_vec.push_back(1);
+    pow_vec.push_back(2);
+    pow_vec.push_back(3);
+    pow_vec.push_back(4);
+    int mask_iter_count = 1;
+    for (vector< vector<int>* >::iterator it = (this->mask_vec_.begin() + 1); // skip mask0
+             it != this->mask_vec_.end(); it++, mask_iter_count++) {
+        for (int i = 0; i < count; i++) {
+            float val = 1/pow(2, pow_vec[mask_iter_count]); // 1 2 3 4
+            float set_val = (weight[i] > 0)? val : (-1) *val;
+            //this->masks1_[i] = ((fabs(weight[i]) >= (1-thr[1])*val && fabs(weight[i]) <= (1+thr[1])*val)? 0 : 1) ;
+            (*(*it))[i] = ((fabs(weight[i]) >= (1-thr[mask_iter_count])*val && fabs(weight[i]) <= (1+thr[mask_iter_count])*val)? 0 : 1) ;
+            //muweight[i] = ((this->masks1_[i] == 0) ? set_val :  muweight[i]) ;
+            muweight[i] = (((*(*it))[i] == 0) ? set_val :  muweight[i]) ;
+            //prune[1] += (1 - this->masks1_[i]);
+            prune[mask_iter_count] += (1 - (*(*it))[i]);
+        }
+        //FC << "percent of 1/2: " << prune[1] / count << std::endl ;
+        //FC << "prune[1]: " << prune[1] << std::endl ;
+        FC << "percent of 1/" << pow(2, pow_vec[mask_iter_count]) << ": " << prune[mask_iter_count] / count << std::endl ;
+        FC << "prune[" << mask_iter_count << "]: " << prune[mask_iter_count] << std::endl ;
+    }
+
+    /*//FC << "masks1: " << std::endl;
     for(int i = 0; i < count; i++) {
       float val = 1/pow(2, 1);
       float set_val = (weight[i] > 0)? val : (-1) *val;
@@ -193,8 +245,8 @@ void InnerProductLayer<Dtype>::ComputeBlobMask(float ratio) {
       prune[4] += (1 - this->masks4_[i]);
     }
 
-    FC << "percent of 1/16:s " << prune[4] / count << std::endl ;
-    FC << "prune[4]: " << prune[4] << std::endl ;
+    FC << "percent of 1/16: " << prune[4] / count << std::endl ;
+    FC << "prune[4]: " << prune[4] << std::endl ;*/
     
     // initialize the masks_all;
 
@@ -205,7 +257,13 @@ void InnerProductLayer<Dtype>::ComputeBlobMask(float ratio) {
     //FC << "masks_all :" <<std::endl;
     for (int i = 0; i < count; i++){
       //for(int j = 0; j < mask_no; j++)
-      this->masks_all[i] = this->masks_[i] & this->masks1_[i] & this->masks2_[i] & this->masks3_[i] & this->masks4_[i];
+      //this->masks_all[i] = this->masks_[i] & this->masks1_[i] & this->masks2_[i] & this->masks3_[i] & this->masks4_[i];
+      // added by xujiang, 02/08/2017
+      this->masks_all[i] = this->masks_[i];
+      for (vector< vector<int>* >::iterator it = (this->mask_vec_.begin() + 1); // skip mask0
+                           it != this->mask_vec_.end(); it++) {
+          this->masks_all[i] = this->masks_all[i] & (*(*it))[i];
+      }
       //FC << this->masks_all[i];
     }
 
@@ -223,7 +281,7 @@ void InnerProductLayer<Dtype>::ComputeBlobMask(float ratio) {
     // added by yuzeng
     float sparsity_post = 0;
     for (int i = 0; i < count; i++ ){
-      std::cout << this->indices_[i];
+      //std::cout << this->indices_[i];
       if (this->indices_[i] == -1)
         sparsity_post += 1;
     }

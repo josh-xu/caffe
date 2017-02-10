@@ -402,7 +402,8 @@ void Solver<Dtype>::Test(const int test_net_id) {
     // added by yuzeng
     if (output_name == "accuracy") {
         std::ofstream ofile;
-        ofile.open("/home/yuzeng/caffe/train_process.log");
+        //ofile.open("/Users/xujiang/technologies/caffe/train_process.log");
+        ofile.open("/Users/xujiang/technologies/caffe/train_process.log", std::fstream::app);
         ofile << "accuracy:  " << mean_score <<std::endl ;
         ofile.close();
     }
