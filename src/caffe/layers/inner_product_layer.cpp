@@ -82,14 +82,27 @@ void InnerProductLayer<Dtype>::ComputeBlobMask(float ratio) {
     this->masks4_.resize(count) ;*/
     // added by xujiang, 02/08/2017
     this->mask_vec_.push_back(&(this->masks_));
-    this->mask_vec_.push_back(&(this->masks1_));
-    this->mask_vec_.push_back(&(this->masks2_));
-    this->mask_vec_.push_back(&(this->masks3_));
-    this->mask_vec_.push_back(&(this->masks4_));
+    #ifdef ONE_BIT
+        this->mask_vec_.push_back(&(this->masks1_));
+        this->mask_vec_.push_back(&(this->masks2_));
+        this->mask_vec_.push_back(&(this->masks3_));
+        this->mask_vec_.push_back(&(this->masks4_));
+        this->mask_vec_.push_back(&(this->masks5_));
+    #endif
+    #ifdef ONE_BIT
+        this->mask_vec2b_.push_back(&(this->masks5p6_));
+        this->mask_vec2b_.push_back(&(this->masks5p7_));
+    #endif
     for (vector< vector<int>* >::iterator it = this->mask_vec_.begin();
              it != this->mask_vec_.end(); it++) {
         (*it)->resize(count);
     }
+    #ifdef TWO_BIT
+        for (vector< vector<int>* >::iterator it = this->mask_vec2b_.begin();
+                 it != this->mask_vec2b_.end(); it++) {
+            (*it)->resize(count);
+        }
+    #endif
 
     this->masks_all.resize(count) ;
     this->indices_.resize(count) ;
@@ -114,6 +127,7 @@ void InnerProductLayer<Dtype>::ComputeBlobMask(float ratio) {
     int index = int(count * ratio) ; // int(count * (1 - max_weight)) ;
     
     vector<Dtype> thr;
+    vector<Dtype> thr2b;
     //thr.resize(mask_no);
     //for (int i = 0; i < this->msk_no; i++){  // set the thr --yuzeng -- del
     //FC << "The thrs :" << std::endl;
@@ -126,6 +140,12 @@ void InnerProductLayer<Dtype>::ComputeBlobMask(float ratio) {
              it != this->mask_vec_.end(); it++) {
         thr.push_back(0.2);
     }
+    #ifdef TWO_BIT
+        for (vector< vector<int>* >::iterator it = this->mask_vec2b_.begin();
+                 it != this->mask_vec2b_.end(); it++) {
+            thr2b.push_back(0.08);
+        }
+    #endif
 
     //FC << std::endl;
 
@@ -133,6 +153,7 @@ void InnerProductLayer<Dtype>::ComputeBlobMask(float ratio) {
     Dtype *muweight = this->blobs_[0]->mutable_cpu_data() ;
     //float rat = 0 ; // what's the usage of rat???
     vector<float> prune;
+    vector<float> prune2b;
     //prune.resize(mask_no);
     //float prune[0] = 0;
     //for (int i = 0; i < this->msk_no; i++){  // set the prune number --yuzeng -- del
@@ -144,6 +165,12 @@ void InnerProductLayer<Dtype>::ComputeBlobMask(float ratio) {
              it != this->mask_vec_.end(); it++) {
         prune.push_back(0);
     }
+    #ifdef TWO_BIT
+        for (vector< vector<int>* >::iterator it = this->mask_vec2b_.begin();
+                 it != this->mask_vec2b_.end(); it++) {
+            prune2b.push_back(0);
+        }
+    #endif
 
     //FC << "masks: " << std::endl;
     if (index > 0) {
@@ -170,31 +197,52 @@ void InnerProductLayer<Dtype>::ComputeBlobMask(float ratio) {
     FC << "prune[0]: " << prune[0] << std::endl ;
     // min_weight = sort_weight[index] ; // why min_weight is indexed by index???
 
-    // added by xujiang, 02/08/2017
-    vector<int> pow_vec;
-    pow_vec.push_back(0); // not used!!! used to align index...
-    pow_vec.push_back(1);
-    pow_vec.push_back(2);
-    pow_vec.push_back(3);
-    pow_vec.push_back(4);
-    int mask_iter_count = 1;
-    for (vector< vector<int>* >::iterator it = (this->mask_vec_.begin() + 1); // skip mask0
-             it != this->mask_vec_.end(); it++, mask_iter_count++) {
-        for (int i = 0; i < count; i++) {
-            float val = 1/pow(2, pow_vec[mask_iter_count]); // 1 2 3 4
-            float set_val = (weight[i] > 0)? val : (-1) *val;
-            //this->masks1_[i] = ((fabs(weight[i]) >= (1-thr[1])*val && fabs(weight[i]) <= (1+thr[1])*val)? 0 : 1) ;
-            (*(*it))[i] = ((fabs(weight[i]) >= (1-thr[mask_iter_count])*val && fabs(weight[i]) <= (1+thr[mask_iter_count])*val)? 0 : 1) ;
-            //muweight[i] = ((this->masks1_[i] == 0) ? set_val :  muweight[i]) ;
-            muweight[i] = (((*(*it))[i] == 0) ? set_val :  muweight[i]) ;
-            //prune[1] += (1 - this->masks1_[i]);
-            prune[mask_iter_count] += (1 - (*(*it))[i]);
+    #ifdef ONE_BIT
+        // added by xujiang, 02/08/2017
+        vector<int> pow_vec_;
+        pow_vec_.push_back(0); // not used!!! used to align index...
+        pow_vec_.push_back(1);
+        pow_vec_.push_back(2);
+        pow_vec_.push_back(3);
+        pow_vec_.push_back(4);
+        pow_vec_.push_back(5);
+        int mask_iter_count_ = 1;
+        for (vector< vector<int>* >::iterator it = (this->mask_vec_.begin() + 1); // skip mask0
+                 it != this->mask_vec_.end(); it++, mask_iter_count_++) {
+            for (int i = 0; i < count; i++) {
+                float val = 1/pow(2, pow_vec_[mask_iter_count_]); // 1 2 3 4 5
+                float set_val = (weight[i] > 0)? val : (-1) *val;
+                //this->masks1_[i] = ((fabs(weight[i]) >= (1-thr[1])*val && fabs(weight[i]) <= (1+thr[1])*val)? 0 : 1) ;
+                (*(*it))[i] = ((fabs(weight[i]) >= (1-thr[mask_iter_count_])*val && fabs(weight[i]) <= (1+thr[mask_iter_count_])*val)? 0 : 1) ;
+                //muweight[i] = ((this->masks1_[i] == 0) ? set_val :  muweight[i]) ;
+                muweight[i] = (((*(*it))[i] == 0 && this->masks_[i] != 0) ? set_val :  muweight[i]) ;
+                //prune[1] += (1 - this->masks1_[i]);
+                prune[mask_iter_count_] += (1 - (*(*it))[i]);
+            }
+            //FC << "percent of 1/2: " << prune[1] / count << std::endl ;
+            //FC << "prune[1]: " << prune[1] << std::endl ;
+            FC << "percent of 1/" << pow(2, pow_vec_[mask_iter_count_]) << ": " << prune[mask_iter_count_] / count << std::endl ;
+            FC << "prune[" << mask_iter_count_ << "]: " << prune[mask_iter_count_] << std::endl ;
         }
-        //FC << "percent of 1/2: " << prune[1] / count << std::endl ;
-        //FC << "prune[1]: " << prune[1] << std::endl ;
-        FC << "percent of 1/" << pow(2, pow_vec[mask_iter_count]) << ": " << prune[mask_iter_count] / count << std::endl ;
-        FC << "prune[" << mask_iter_count << "]: " << prune[mask_iter_count] << std::endl ;
-    }
+    #endif
+    #ifdef TWO_BIT
+        vector<float> pow_vec2b_;
+        pow_vec2b_.push_back(1/pow(2, 5) + 1/pow(2, 6));
+        pow_vec2b_.push_back(1/pow(2, 5) + 1/pow(2, 7));
+        int mask_iter_count2b_ = 0;
+        for (vector< vector<int>* >::iterator it = this->mask_vec2b_.begin();
+                 it != this->mask_vec2b_.end(); it++, mask_iter_count2b_++) {
+            for (int i = 0; i < count; i++) {
+                float val = pow_vec2b_[mask_iter_count2b_]; // 5p6 5p7
+                float set_val = (weight[i] > 0)? val : (-1) *val;
+                (*(*it))[i] = ((fabs(weight[i]) >= (1-thr2b[mask_iter_count2b_])*val && fabs(weight[i]) <= (1+thr2b[mask_iter_count2b_])*val)? 0 : 1) ;
+                muweight[i] = (((*(*it))[i] == 0 && this->masks_[i] != 0) ? set_val :  muweight[i]) ;
+                prune2b[mask_iter_count2b_] += (1 - (*(*it))[i]);
+            }
+            FC << "percent of " << pow_vec2b_[mask_iter_count2b_] << ": " << prune2b[mask_iter_count2b_] / count << std::endl ;
+            FC << "prune2b[" << mask_iter_count2b_ << "]: " << prune2b[mask_iter_count2b_] << std::endl ;
+        }
+    #endif
 
     /*//FC << "masks1: " << std::endl;
     for(int i = 0; i < count; i++) {
@@ -260,10 +308,18 @@ void InnerProductLayer<Dtype>::ComputeBlobMask(float ratio) {
       //this->masks_all[i] = this->masks_[i] & this->masks1_[i] & this->masks2_[i] & this->masks3_[i] & this->masks4_[i];
       // added by xujiang, 02/08/2017
       this->masks_all[i] = this->masks_[i];
-      for (vector< vector<int>* >::iterator it = (this->mask_vec_.begin() + 1); // skip mask0
-                           it != this->mask_vec_.end(); it++) {
-          this->masks_all[i] = this->masks_all[i] & (*(*it))[i];
-      }
+      #ifdef ONE_BIT
+          for (vector< vector<int>* >::iterator it = (this->mask_vec_.begin() + 1); // skip mask0
+                               it != this->mask_vec_.end(); it++) {
+              this->masks_all[i] = this->masks_all[i] & (*(*it))[i];
+          }
+      #endif
+      #ifdef TWO_BIT
+          for (vector< vector<int>* >::iterator it = this->mask_vec2b_.begin();
+                               it != this->mask_vec2b_.end(); it++) {
+              this->masks_all[i] = this->masks_all[i] & (*(*it))[i];
+          }
+      #endif
       //FC << this->masks_all[i];
     }
 

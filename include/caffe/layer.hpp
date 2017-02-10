@@ -20,6 +20,8 @@
 #define LR 0.01 // added by yuzeng
 #define XU_CONV
 #define XU_FC
+#define ONE_BIT
+#define TWO_BIT
 
 /**
  Forward declare boost::thread instead of including boost/thread.hpp
@@ -220,16 +222,26 @@ class Layer {
 
 // added by xujiang
 vector<int> masks_;
-vector<int> masks1_; // -- del
-vector<int> masks2_; // -- del
-vector<int> masks3_;
-vector<int> masks4_;
+#ifdef ONE_BIT
+    vector<int> masks1_; // -- del
+    vector<int> masks2_; // -- del
+    vector<int> masks3_;
+    vector<int> masks4_;
+    vector<int> masks5_;
+#endif
+#ifdef TWO_BIT
+    vector<int> masks5p6_;
+    vector<int> masks5p7_;
+#endif
 //vector<int> masks_[0] ;
 //vector<int> masks_[1] ;
 //vector< vector<int> > msk_ ;
 //int msk_no;
 
 vector< vector<int>* > mask_vec_;
+#ifdef TWO_BIT
+    vector< vector<int>* > mask_vec2b_;
+#endif
 //int mask_num = 5;
 
 vector<int> masks_all;
