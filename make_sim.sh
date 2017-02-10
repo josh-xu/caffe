@@ -1,3 +1,5 @@
 make clean
 make -j4
-./mnist_resume_training.sh
+rm output_CONV.log
+rm output_FC.log
+./mnist_step_train.sh
