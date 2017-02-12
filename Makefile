@@ -450,7 +450,7 @@ endif
 ##############################
 .PHONY: all lib test clean docs linecount lint lintclean tools examples $(DIST_ALIASES) \
 	py mat py$(PROJECT) mat$(PROJECT) proto runtest \
-	superclean supercleanlist supercleanfiles warn everything clean_log
+	superclean supercleanlist supercleanfiles warn everything clean_log clean_model
 
 all: lib tools examples
 
@@ -657,6 +657,33 @@ clean:
 
 clean_log:
 	@- $(RM) output_*.log params.txt train_process.log
+
+clean_model:
+	@- $(RM) \
+	examples/mnist/lenet_iter_11000.caffemodel  \
+	examples/mnist/lenet_iter_11000.solverstate \
+	examples/mnist/lenet_iter_12000.caffemodel  \
+	examples/mnist/lenet_iter_12000.solverstate \
+	examples/mnist/lenet_iter_13000.caffemodel  \
+	examples/mnist/lenet_iter_13000.solverstate \
+	examples/mnist/lenet_iter_14000.caffemodel  \
+	examples/mnist/lenet_iter_14000.solverstate \
+	examples/mnist/lenet_iter_15000.caffemodel  \
+	examples/mnist/lenet_iter_15000.solverstate \
+	examples/mnist/lenet_iter_16000.caffemodel  \
+	examples/mnist/lenet_iter_16000.solverstate \
+	examples/mnist/lenet_iter_17000.caffemodel  \
+	examples/mnist/lenet_iter_17000.solverstate \
+	examples/mnist/lenet_iter_18000.caffemodel  \
+	examples/mnist/lenet_iter_18000.solverstate \
+	examples/mnist/lenet_iter_19000.caffemodel  \
+	examples/mnist/lenet_iter_19000.solverstate \
+	examples/mnist/lenet_iter_20000.caffemodel  \
+	examples/mnist/lenet_iter_20000.solverstate \
+	examples/mnist/lenet_iter_25000.caffemodel  \
+	examples/mnist/lenet_iter_25000.solverstate \
+	examples/mnist/lenet_iter_30000.caffemodel  \
+	examples/mnist/lenet_iter_30000.solverstate
 
 supercleanfiles:
 	$(eval SUPERCLEAN_FILES := $(strip \

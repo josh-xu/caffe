@@ -17,11 +17,11 @@
 // added by xujiang
 #define CONV_QUNUM 16 // 2^8???
 #define FC_QUNUM 16 // 2^5???
-#define LR 0.01 // added by yuzeng
+//#define LR 0.01 // added by yuzeng
 #define XU_CONV
 #define XU_FC
 #define ONE_BIT
-#define TWO_BIT
+//#define TWO_BIT
 
 /**
  Forward declare boost::thread instead of including boost/thread.hpp
@@ -30,6 +30,8 @@
 namespace boost { class mutex; }
 
 namespace caffe {
+
+extern float LR; // added by xujiang, 02/12/2017
 
 // added by xujiang
 template<typename Dtype>

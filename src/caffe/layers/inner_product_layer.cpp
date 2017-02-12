@@ -63,8 +63,8 @@ template <typename Dtype>
 void InnerProductLayer<Dtype>::ComputeBlobMask(float ratio) {
     // LOG(INFO) is cout???
     std::ofstream FC;
-    //FC.open("/Users/xujiang/technologies/caffe/output_FC.log", std::ios_base::app);
-    FC.open("/Users/xujiang/technologies/caffe/output_FC.log", std::fstream::app);
+    //FC.open("./output_FC.log", std::ios_base::app);
+    FC.open("./output_FC.log", std::fstream::app);
     FC << "FC blob mask" << std::endl ;
 
     // blobs_[]???
@@ -87,9 +87,9 @@ void InnerProductLayer<Dtype>::ComputeBlobMask(float ratio) {
         this->mask_vec_.push_back(&(this->masks2_));
         this->mask_vec_.push_back(&(this->masks3_));
         this->mask_vec_.push_back(&(this->masks4_));
-        this->mask_vec_.push_back(&(this->masks5_));
+        //this->mask_vec_.push_back(&(this->masks5_));
     #endif
-    #ifdef ONE_BIT
+    #ifdef TWO_BIT
         this->mask_vec2b_.push_back(&(this->masks5p6_));
         this->mask_vec2b_.push_back(&(this->masks5p7_));
     #endif
@@ -478,7 +478,8 @@ void InnerProductLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
             if (this->masks_all[j]) {
                 //weight_diff[j] = tmpDiff[this->indices_[j]] / freq[this->indices_[j]] ;
                 //added by yuzeng
-                this->centroids_[this->indices_[j]] -= LR * weight_diff[j]/freq[this->indices_[j]];
+                //this->centroids_[this->indices_[j]] -= LR * weight_diff[j]/freq[this->indices_[j]];
+                this->centroids_[this->indices_[j]] -= LR * weight_diff[j];
             }
         }
     } else {

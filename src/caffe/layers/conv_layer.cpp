@@ -30,8 +30,8 @@ template <typename Dtype>
 void ConvolutionLayer<Dtype>::ComputeBlobMask(float ratio) {
     // LOG(INFO) is cout???
     std::ofstream FD;
-    //FD.open("/Users/xujiang/technologies/caffe/output_CONV.log", std::ios_base::app);
-    FD.open("/Users/xujiang/technologies/caffe/output_CONV.log", std::fstream::app);
+    //FD.open("./output_CONV.log", std::ios_base::app);
+    FD.open("./output_CONV.log", std::fstream::app);
     FD << "conv blob mask" << std::endl ;
 
     // blobs_[]???
@@ -55,7 +55,7 @@ void ConvolutionLayer<Dtype>::ComputeBlobMask(float ratio) {
         this->mask_vec_.push_back(&(this->masks2_));
         this->mask_vec_.push_back(&(this->masks3_));
         this->mask_vec_.push_back(&(this->masks4_));
-        this->mask_vec_.push_back(&(this->masks5_));
+        //this->mask_vec_.push_back(&(this->masks5_));
     #endif
     #ifdef TWO_BIT
         this->mask_vec2b_.push_back(&(this->masks5p6_));
@@ -419,8 +419,12 @@ void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
                 if (this->masks_all[j]) {
                     // weight_diff[j] = tmpDiff[this->indices_[j]] / freq[this->indices_[j]] ;
                     // added by yuzeng
+                    
                     // MUST use "/freq[]" to update with weight_diff[]'s average!!!
-                    this->centroids_[this->indices_[j]] -= LR * weight_diff[j]/freq[this->indices_[j]];
+                    //this->centroids_[this->indices_[j]] -= LR * weight_diff[j]/freq[this->indices_[j]];
+                    
+                    // modified by xujiang, 02/12/2017, after using varying LR, don't use average gives better result!
+                    this->centroids_[this->indices_[j]] -= LR * weight_diff[j];
                 }
             }
         }

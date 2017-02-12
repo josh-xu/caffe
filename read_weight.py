@@ -22,11 +22,11 @@ def drawHist(weights):
 # show the output param
 np.set_printoptions(threshold='nan')
 
-# deploy  file
+# deploy file
 # MODEL_FILE = 'caffe_deploy.prototxt'
-MODEL_FILE = '/Users/xujiang/technologies/caffe/examples/mnist/lenet.prototxt'
+MODEL_FILE = '../caffe/examples/mnist/lenet.prototxt'
 # the trained caffe model
-PRETRAIN_FILE = '/Users/xujiang/technologies/caffe/examples/mnist/lenet_iter_10000.caffemodel'
+PRETRAIN_FILE = '../caffe/examples/mnist/lenet_iter_20000.caffemodel'
 
 # file for storing the parameters
 params_txt = 'params.txt'
