@@ -660,6 +660,10 @@ clean_log:
 
 clean_model:
 	@- $(RM) \
+	examples/mnist/lenet_finetune_iter_5000.caffemodel  \
+	examples/mnist/lenet_finetune_iter_5000.solverstate \
+	examples/mnist/lenet_finetune_iter_10000.caffemodel  \
+	examples/mnist/lenet_finetune_iter_10000.solverstate \
 	examples/mnist/lenet_iter_11000.caffemodel  \
 	examples/mnist/lenet_iter_11000.solverstate \
 	examples/mnist/lenet_iter_12000.caffemodel  \

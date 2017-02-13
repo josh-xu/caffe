@@ -21,7 +21,7 @@
 #define XU_CONV
 #define XU_FC
 #define ONE_BIT
-//#define TWO_BIT
+#define TWO_BIT
 
 /**
  Forward declare boost::thread instead of including boost/thread.hpp

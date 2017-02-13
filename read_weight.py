@@ -14,9 +14,16 @@ def drawHist(weights):
     #the first parameter is the variable to be plot
     #the second parameter is the number of divided space
     pyplot.hist(weights, 100)
-    pyplot.xlabel('weights')
+    pyplot.xlabel('Weights')
     pyplot.ylabel('Frequency')
-    pyplot.title('Weights of the network')
+    pyplot.title('Weights of the Network')
+    pyplot.show()
+
+def drawPlot(weights):
+    pyplot.plot(weights)
+    pyplot.xlabel('Index')
+    pyplot.ylabel('Weights')
+    pyplot.title('Weights of the Network')
     pyplot.show()
 
 # show the output param
@@ -25,8 +32,14 @@ np.set_printoptions(threshold='nan')
 # deploy file
 # MODEL_FILE = 'caffe_deploy.prototxt'
 MODEL_FILE = '../caffe/examples/mnist/lenet.prototxt'
+#MODEL_FILE = '../caffe_github/examples/mnist/lenet.prototxt'
+#MODEL_FILE = '../ristretto/examples/mnist/lenet_quantized.prototxt'
+#MODEL_FILE = '../ristretto/examples/mnist/lenet_quantized_2n.prototxt'
 # the trained caffe model
 PRETRAIN_FILE = '../caffe/examples/mnist/lenet_iter_20000.caffemodel'
+#PRETRAIN_FILE = '../caffe_github/examples/mnist/lenet_iter_10000.caffemodel'
+#PRETRAIN_FILE = '../ristretto/examples/mnist/ristretto_lenet_iter_10000.caffemodel'
+#PRETRAIN_FILE = '../ristretto/examples/mnist/ristretto_lenet_2n_iter_10000.caffemodel'
 
 # file for storing the parameters
 params_txt = 'params.txt'
@@ -59,7 +72,8 @@ for param_name in net.params.keys():
     #drawHist(weight)
 
     for w in weight:
-        pf.write('%f, ' % w)
+        pf.write('%.10f, ' % w)
+        #pf.write('%s, ' % float(w))
         weight_final.append(float(w))
 
     # write biases
@@ -71,8 +85,8 @@ for param_name in net.params.keys():
 
     pf.write('\n\n')
 
-
-
 drawHist(weight_final)
+weight_final.sort()
+drawPlot(weight_final)
 
 pf.close

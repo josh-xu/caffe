@@ -55,7 +55,7 @@ void ConvolutionLayer<Dtype>::ComputeBlobMask(float ratio) {
         this->mask_vec_.push_back(&(this->masks2_));
         this->mask_vec_.push_back(&(this->masks3_));
         this->mask_vec_.push_back(&(this->masks4_));
-        //this->mask_vec_.push_back(&(this->masks5_));
+        this->mask_vec_.push_back(&(this->masks5_));
     #endif
     #ifdef TWO_BIT
         this->mask_vec2b_.push_back(&(this->masks5p6_));

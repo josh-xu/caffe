@@ -1,0 +1,1 @@
+examples/mnist/finetune_mnist.sh
