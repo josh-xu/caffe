@@ -5,6 +5,10 @@
 
 #include "caffe/layers/conv_layer.hpp"
 
+#include "opencv2/highgui.hpp"
+#include "opencv2/core.hpp"
+#include "opencv2/imgproc.hpp"
+
 namespace caffe {
 
 template <typename Dtype>
@@ -291,23 +295,29 @@ void ConvolutionLayer<Dtype>::ComputeBlobMask(float ratio) {
       //FD << this->masks_all[i];
     }
 
-    // kmeans_cluster()???
-    int nCentroid = CONV_QUNUM ;
-    if (nCentroid > count) {
-        //FD << "@@@ Weird Things Happened!!!\n" ;
-        assert(false && "nCentroid > count") ;
-        nCentroid = count ;
-    }
-    FD << "nCentroid = CONV_QUNUM: " << nCentroid << "\n" ;
-    FD << "nWeights = count: " << count << "\n" ;
-    kmeans_cluster(this->indices_, this->centroids_, muweight, count,
-                       this->masks_all, nCentroid, 1000) ;
+    #ifdef KMEANS_CONV
+        // kmeans_cluster()???
+        int nCentroid = CONV_QUNUM ;
+        if (nCentroid > count) {
+            //FD << "@@@ Weird Things Happened!!!\n" ;
+            assert(false && "nCentroid > count") ;
+            nCentroid = count ;
+        }
+        FD << "nCentroid = CONV_QUNUM: " << nCentroid << "\n" ;
+        FD << "nWeights = count: " << count << "\n" ;
+        kmeans_cluster(this->indices_, this->centroids_, muweight, count,
+                           this->masks_all, nCentroid, 1000) ;
+    #endif
+
     // added by yuzeng
     float sparsity_post = 0;
     for (int i = 0; i < count; i++ ){
       //std::cout << this->indices_[i];
-      if (this->indices_[i] == -1)
-        sparsity_post += 1;
+      #ifdef KMEANS_CONV
+          if (this->indices_[i] == -1) sparsity_post += 1;
+      #else
+          if (this->masks_all[i] == 0) sparsity_post += 1;
+      #endif
     }
     FD << "sparsity after kmeans " << sparsity_post / count << std::endl;
     FD << "prune all: " << sparsity_post << std::endl ;
@@ -324,7 +334,9 @@ void ConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   // 01/29/2017, FIND BUG, not only inner_product_layer & conv_layer will call this func!!!
       // will cause segmentation fault!!!
   if (this->masks_all.size() != 0) {
-      Dtype *muweight = this->blobs_[0]->mutable_cpu_data() ;
+      #ifdef KMEANS_CONV
+          Dtype *muweight = this->blobs_[0]->mutable_cpu_data() ;
+      #endif
       int count = this->blobs_[0]->count() ;
 
       // 01/29/2017, FIND BUG, not only inner_product_layer & conv_layer will call this func!!!
@@ -341,7 +353,9 @@ void ConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
               // weight sharing!!!
               //FD << "Forward_cpu weight sharing iteration " << i << "\n" ;
               //FD << this->centroids_[this->indices_[i]] << " " ;
-              muweight[i] = this->centroids_[this->indices_[i]] ;
+              #ifdef KMEANS_CONV
+                  muweight[i] = this->centroids_[this->indices_[i]] ;
+              #endif
           }
       }
       //FD << "\n" ;
@@ -419,12 +433,15 @@ void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
                 if (this->masks_all[j]) {
                     // weight_diff[j] = tmpDiff[this->indices_[j]] / freq[this->indices_[j]] ;
                     // added by yuzeng
-                    
-                    // MUST use "/freq[]" to update with weight_diff[]'s average!!!
-                    //this->centroids_[this->indices_[j]] -= LR * weight_diff[j]/freq[this->indices_[j]];
-                    
-                    // modified by xujiang, 02/12/2017, after using varying LR, don't use average gives better result!
-                    this->centroids_[this->indices_[j]] -= LR * weight_diff[j];
+                    #ifdef KMEANS_CONV
+                        #ifdef BACK_CAL_MEAN_CONV
+                            // MUST use "/freq[]" to update with weight_diff[]'s average!!!
+                            this->centroids_[this->indices_[j]] -= LR * weight_diff[j]/freq[this->indices_[j]];
+                        #else
+                            // modified by xujiang, 02/12/2017, after using varying LR, don't use average gives better result!
+                            this->centroids_[this->indices_[j]] -= LR * weight_diff[j];
+                        #endif
+                    #endif
                 }
             }
         }

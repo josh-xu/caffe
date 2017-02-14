@@ -323,23 +323,29 @@ void InnerProductLayer<Dtype>::ComputeBlobMask(float ratio) {
       //FC << this->masks_all[i];
     }
 
-    // kmeans_cluster()???
-    int nCentroid = FC_QUNUM ;
-    if (nCentroid > count) {
-        //FC << "@@@ Weird Things Happened!!!\n" ;
-        assert(false && "nCentroid > count") ;
-        nCentroid = count ;
-    }
-    FC << "nCentroid = FC_QUNUM: " << nCentroid << "\n" ;
-    FC << "nWeights = count: " << count << "\n" ;
-    kmeans_cluster(this->indices_, this->centroids_, muweight, count,
-                       this->masks_all, nCentroid, 1000) ;
+    #ifdef KMEANS_FC
+        // kmeans_cluster()???
+        int nCentroid = FC_QUNUM ;
+        if (nCentroid > count) {
+            //FC << "@@@ Weird Things Happened!!!\n" ;
+            assert(false && "nCentroid > count") ;
+            nCentroid = count ;
+        }
+        FC << "nCentroid = FC_QUNUM: " << nCentroid << "\n" ;
+        FC << "nWeights = count: " << count << "\n" ;
+        kmeans_cluster(this->indices_, this->centroids_, muweight, count,
+                           this->masks_all, nCentroid, 1000) ;
+    #endif
+
     // added by yuzeng
     float sparsity_post = 0;
     for (int i = 0; i < count; i++ ){
       //std::cout << this->indices_[i];
-      if (this->indices_[i] == -1)
-        sparsity_post += 1;
+      #ifdef KMEANS_FC
+          if (this->indices_[i] == -1) sparsity_post += 1;
+      #else
+          if (this->masks_all[i] == 0) sparsity_post += 1;
+      #endif
     }
     FC << "sparsity after kmeans " << sparsity_post / count << std::endl;
     FC << "prune all: " << sparsity_post << std::endl ;
@@ -381,13 +387,17 @@ void InnerProductLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   // added by xujiang
   #ifdef XU_FC
   if (this->masks_all.size() != 0) {
-      Dtype *muweight = this->blobs_[0]->mutable_cpu_data() ;
+      #ifdef KMEANS_FC
+          Dtype *muweight = this->blobs_[0]->mutable_cpu_data() ;
+      #endif
       int count = this->blobs_[0]->count() ;
 
       for (int i = 0; i < count; i++) {
           if (this->masks_all[i]) {
               // weight sharing!!!
-              muweight[i] = this->centroids_[this->indices_[i]] ;
+              #ifdef KMEANS_FC
+                  muweight[i] = this->centroids_[this->indices_[i]] ;
+              #endif
           }
       }
   }
@@ -478,8 +488,13 @@ void InnerProductLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
             if (this->masks_all[j]) {
                 //weight_diff[j] = tmpDiff[this->indices_[j]] / freq[this->indices_[j]] ;
                 //added by yuzeng
-                //this->centroids_[this->indices_[j]] -= LR * weight_diff[j]/freq[this->indices_[j]];
-                this->centroids_[this->indices_[j]] -= LR * weight_diff[j];
+                #ifdef KMEANS_FC
+                    #ifdef BACK_CAL_MEAN_FC
+                        this->centroids_[this->indices_[j]] -= LR * weight_diff[j]/freq[this->indices_[j]];
+                    #else
+                        this->centroids_[this->indices_[j]] -= LR * weight_diff[j];
+                    #endif
+                #endif
             }
         }
     } else {

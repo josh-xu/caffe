@@ -459,6 +459,67 @@ string Solver<Dtype>::SnapshotToBinaryProto() {
   NetParameter net_param;
   net_->ToProto(&net_param, param_.snapshot_diff());
   WriteProtoToBinaryFile(net_param, model_filename);
+
+  // added by xujiang, 02/13/2017
+  int num_source_layers = net_param.layer_size();
+  for (int i = 0; i < num_source_layers; ++i) {
+      const LayerParameter& source_layer = net_param.layer(i);
+      const string& source_layer_name = source_layer.name();
+
+      int target_layer_id = 0;
+      while (target_layer_id != net_->layer_names().size() &&
+                 (net_->layer_names())[target_layer_id] != source_layer_name) {
+          target_layer_id++;
+      }
+      if (target_layer_id == net_->layer_names().size()) {
+          LOG(INFO) << "Ignoring source layer " << source_layer_name;
+          continue;
+      }
+
+      if (source_layer.name() == "conv1"     ||
+              source_layer.name() == "conv2" ||
+              source_layer.name() == "ip1"   ||
+              source_layer.name() == "ip2") {
+          std::ofstream ofile;
+          ofile.open("./train_model_paras.log", std::fstream::app);
+
+          #if defined(KMEANS_CONV) && defined(KMEANS_FC)
+              ofile << "centroids_[]:\n" ;
+              for (auto it = (net_->layers())[target_layer_id]->centroids_.begin();
+                       it != (net_->layers())[target_layer_id]->centroids_.end(); it++) {
+                  ofile << *it << " ";
+              }
+              ofile << "\n" ;
+              ofile << "indices_[]:\n" ;
+              for (auto it = (net_->layers())[target_layer_id]->indices_.begin();
+                       it != (net_->layers())[target_layer_id]->indices_.end(); it++) {
+                  ofile << *it << " ";
+              }
+              ofile << "\n" ;
+          #endif
+
+          const Dtype *weight = ((net_->layers())[target_layer_id]->blobs())[0]->cpu_data();
+          int count = ((net_->layers())[target_layer_id]->blobs())[0]->count();
+          ofile << "weight[]:\n" ;
+          for (int i = 0; i < count; i++) {
+              ofile << weight[i] << " ";
+          }
+          ofile << "\n" ;
+          #if defined(KMEANS_CONV) && defined(KMEANS_FC)
+          #else
+              ofile << "masks_all[]:\n" ;
+              for (int i = 0; i < count; i++) {
+                  ofile << (net_->layers())[target_layer_id]->masks_all[i] << " ";
+              }
+              ofile << "\n" ;
+          #endif
+
+          ofile << "################# The end of " << source_layer.name() << " layer data ####################\n" << std::endl;
+          ofile.close();
+      }
+  }
+  // added by xujiang, 02/13/2017
+
   return model_filename;
 }
 

@@ -15,13 +15,27 @@
 #include <limits>
 
 // added by xujiang
-#define CONV_QUNUM 16 // 2^8???
-#define FC_QUNUM 16 // 2^5???
+#define CONV_QUNUM 256 // 2^8???
+#define FC_QUNUM 32 // 2^5???
 //#define LR 0.01 // added by yuzeng
 #define XU_CONV
 #define XU_FC
-#define ONE_BIT
-#define TWO_BIT
+//#define ONE_BIT
+//#define TWO_BIT
+
+#define KMEANS_CONV
+#define KMEANS_FC
+
+#define USE_VARY_LR
+#define LR_INIT 0.01
+
+#define BACK_CAL_MEAN_CONV
+//#define BACK_CAL_MEAN_FC
+
+#define CONV1_THR 0.34
+#define CONV2_THR 0.88
+#define IP1_THR 0.92
+#define IP2_THR 0.81
 
 /**
  Forward declare boost::thread instead of including boost/thread.hpp

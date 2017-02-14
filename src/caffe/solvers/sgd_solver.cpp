@@ -8,7 +8,7 @@
 
 namespace caffe {
 
-float LR = 0.01; // added by xujiang, 02/12/2017
+float LR = LR_INIT; // added by xujiang, 02/12/2017
 
 // Return the current learning rate. The currently implemented learning rate
 // policies are as follows:
@@ -108,9 +108,11 @@ void SGDSolver<Dtype>::ApplyUpdate() {
         << ", lr = " << rate;
   }
 
-  // added by xujiang, 02/12/2017
-  LR = float(rate);
-  // added by xujiang, 02/12/2017
+  #ifdef USE_VARY_LR
+      // added by xujiang, 02/12/2017
+      LR = float(rate);
+      // added by xujiang, 02/12/2017
+  #endif
 
   ClipGradients();
   for (int param_id = 0; param_id < this->net_->learnable_params().size();

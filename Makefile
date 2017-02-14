@@ -646,17 +646,16 @@ $(PY_PROTO_BUILD_DIR)/%_pb2.py : $(PROTO_SRC_DIR)/%.proto \
 $(PY_PROTO_INIT): | $(PY_PROTO_BUILD_DIR)
 	touch $(PY_PROTO_INIT)
 
-clean:
+clean: clean_log
 	@- $(RM) -rf $(ALL_BUILD_DIRS)
 	@- $(RM) -rf $(OTHER_BUILD_DIR)
 	@- $(RM) -rf $(BUILD_DIR_LINK)
 	@- $(RM) -rf $(DISTRIBUTE_DIR)
 	@- $(RM) $(PY$(PROJECT)_SO)
 	@- $(RM) $(MAT$(PROJECT)_SO)
-	@- $(RM) output_*.log params.txt train_process.log
 
 clean_log:
-	@- $(RM) output_*.log params.txt train_process.log
+	@- $(RM) output_*.log params.txt train_process.log train_model_paras.log
 
 clean_model:
 	@- $(RM) \
@@ -682,12 +681,10 @@ clean_model:
 	examples/mnist/lenet_iter_18000.solverstate \
 	examples/mnist/lenet_iter_19000.caffemodel  \
 	examples/mnist/lenet_iter_19000.solverstate \
-	examples/mnist/lenet_iter_20000.caffemodel  \
-	examples/mnist/lenet_iter_20000.solverstate \
-	examples/mnist/lenet_iter_25000.caffemodel  \
-	examples/mnist/lenet_iter_25000.solverstate \
-	examples/mnist/lenet_iter_30000.caffemodel  \
-	examples/mnist/lenet_iter_30000.solverstate
+	examples/mnist/lenet_iter_2*000.caffemodel  \
+	examples/mnist/lenet_iter_2*000.solverstate \
+	examples/mnist/lenet_iter_3*000.caffemodel  \
+	examples/mnist/lenet_iter_3*000.solverstate
 
 supercleanfiles:
 	$(eval SUPERCLEAN_FILES := $(strip \
