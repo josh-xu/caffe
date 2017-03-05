@@ -498,11 +498,73 @@ string Solver<Dtype>::SnapshotToBinaryProto() {
               ofile << "\n" ;
           #endif
 
+          // last modification, do the real prunning after backward update!
+          Dtype *muweight = ((net_->layers())[target_layer_id]->blobs())[0]->mutable_cpu_data();
           const Dtype *weight = ((net_->layers())[target_layer_id]->blobs())[0]->cpu_data();
           int count = ((net_->layers())[target_layer_id]->blobs())[0]->count();
+
+          for (int i = 0; i < count; i++) {
+              #if defined(KMEANS_CONV) && defined(KMEANS_FC)
+                  if ((net_->layers())[target_layer_id]->masks_all[i]) {
+                      muweight[i] = (net_->layers())[target_layer_id]->centroids_[(net_->layers())[target_layer_id]->indices_[i]] ;
+                  }
+              #endif
+
+              if (!(net_->layers())[target_layer_id]->masks_[i]) {
+                  muweight[i] = 0;
+              #ifdef ONE_BIT
+              } else if (!(net_->layers())[target_layer_id]->masks1_[i]) {
+                  if (weight[i] > 0) {
+                      muweight[i] = 1/pow(2, 1);
+                  } else {
+                      muweight[i] = -1 * 1/pow(2, 1);
+                  }
+              } else if (!(net_->layers())[target_layer_id]->masks2_[i]) {
+                  if (weight[i] > 0) {
+                      muweight[i] = 1/pow(2, 2);
+                  } else {
+                      muweight[i] = -1 * 1/pow(2, 2);
+                  }
+              } else if (!(net_->layers())[target_layer_id]->masks3_[i]) {
+                  if (weight[i] > 0) {
+                      muweight[i] = 1/pow(2, 3);
+                  } else {
+                      muweight[i] = -1 * 1/pow(2, 3);
+                  }
+              } else if (!(net_->layers())[target_layer_id]->masks4_[i]) {
+                  if (weight[i] > 0) {
+                      muweight[i] = 1/pow(2, 4);
+                  } else {
+                      muweight[i] = -1 * 1/pow(2, 4);
+                  }
+              } else if (!(net_->layers())[target_layer_id]->masks5_[i]) {
+                  if (weight[i] > 0) {
+                      muweight[i] = 1/pow(2, 5);
+                  } else {
+                      muweight[i] = -1 * 1/pow(2, 5);
+                  }
+              #endif
+              #ifdef TWO_BIT
+              } else if (!(net_->layers())[target_layer_id]->masks5p6_[i]) {
+                  if (weight[i] > 0) {
+                      muweight[i] = 1/pow(2, 5) + 1/pow(2, 6);
+                  } else {
+                      muweight[i] = -1 * (1/pow(2, 5) + 1/pow(2, 6));
+                  }
+              } else if (!(net_->layers())[target_layer_id]->masks5p7_[i]) {
+                  if (weight[i] > 0) {
+                      muweight[i] = 1/pow(2, 5) + 1/pow(2, 7);
+                  } else {
+                      muweight[i] = -1 * (1/pow(2, 5) + 1/pow(2, 7));
+                  }
+              #endif
+              }
+          }
+
           ofile << "weight[]:\n" ;
           for (int i = 0; i < count; i++) {
-              ofile << weight[i] << " ";
+              //ofile << weight[i] << " ";
+              ofile << muweight[i] << " ";
           }
           ofile << "\n" ;
           #if defined(KMEANS_CONV) && defined(KMEANS_FC)
@@ -519,6 +581,9 @@ string Solver<Dtype>::SnapshotToBinaryProto() {
       }
   }
   // added by xujiang, 02/13/2017
+
+  //net_->ToProto(&net_param, param_.snapshot_diff());
+  //WriteProtoToBinaryFile(net_param, model_filename);
 
   return model_filename;
 }

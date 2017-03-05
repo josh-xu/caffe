@@ -15,13 +15,16 @@
 #include <limits>
 
 // added by xujiang
+
+#define XU_DEBUG
+
 #define CONV_QUNUM 256 // 2^8???
 #define FC_QUNUM 32 // 2^5???
 //#define LR 0.01 // added by yuzeng
 #define XU_CONV
 #define XU_FC
-//#define ONE_BIT
-//#define TWO_BIT
+#define ONE_BIT
+#define TWO_BIT
 
 #define KMEANS_CONV
 #define KMEANS_FC
@@ -30,12 +33,23 @@
 #define LR_INIT 0.01
 
 #define BACK_CAL_MEAN_CONV
-//#define BACK_CAL_MEAN_FC
+#define BACK_CAL_MEAN_FC
 
 #define CONV1_THR 0.34
 #define CONV2_THR 0.88
 #define IP1_THR 0.92
 #define IP2_THR 0.81
+
+//// no prune0
+//#define CONV1_THR 0
+//#define CONV2_THR 0
+//#define IP1_THR 0
+//#define IP2_THR 0
+
+#define ONE_BIT_RATIO_CONV 0.12
+#define ONE_BIT_RATIO_FC 0.2
+#define TWO_BIT_RATIO_CONV 0.05
+#define TWO_BIT_RATIO_FC 0.08
 
 /**
  Forward declare boost::thread instead of including boost/thread.hpp
@@ -119,12 +133,12 @@ void kmeans_cluster(vector<int> &cLabel, vector<Dtype> &cCentro, Dtype *cWeights
             }
             //std::cout << "\n" ;
 
-            // 01/29/2017, FIND BUG, several cCentro[]'s value is nan???
-            std::cout << "@print centroids_\n" ;
-            for (int xj = 0; xj < nCluster; xj++) {
-                std::cout << cCentro[xj] << " " ;
-            }
-            std::cout << "\n" ;
+            //// 01/29/2017, FIND BUG, several cCentro[]'s value is nan???
+            //std::cout << "@print centroids_\n" ;
+            //for (int xj = 0; xj < nCluster; xj++) {
+            //    std::cout << cCentro[xj] << " " ;
+            //}
+            //std::cout << "\n" ;
 
             break ;
         }
@@ -195,6 +209,14 @@ void kmeans_cluster(vector<int> &cLabel, vector<Dtype> &cCentro, Dtype *cWeights
         iter++ ;
         std::cout << "@Iteration: " << iter << " Distance: " << mCurDistance << "\n" ;
     }
+
+    std::cout << "@print centroids_\n" ;
+    int nCluster_real = 0;
+    for (int xj = 0; xj < nCluster; xj++) {
+        if (cClusterSize[xj] != 0) nCluster_real++;
+        std::cout << cCentro[xj] << " " ;
+    }
+    std::cout << "\nnCluster_real = " << nCluster_real << "\n" ;
 
     delete[] cDistance ;
     delete[] cClusterSize ;

@@ -1,5 +1,3 @@
 make clean
-make -j4
-rm output_CONV.log
-rm output_FC.log
-./mnist_step_train.sh
+make -j6
+./build/tools/caffe train --solver=examples/mnist/lenet_solver_29000.prototxt --snapshot=examples/mnist/lenet_iter_28000.solverstate $@

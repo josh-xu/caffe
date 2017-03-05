@@ -3,27 +3,27 @@ set -e
 
 make clean_model
 
-./build/tools/caffe train \
+    ./build/tools/caffe train \
     --solver=examples/mnist/lenet_solver_11000.prototxt \
     --snapshot=examples/mnist/lenet_iter_10000.solverstate \
     $@
 
- ./build/tools/caffe train \
+    ./build/tools/caffe train \
     --solver=examples/mnist/lenet_solver_12000.prototxt \
     --snapshot=examples/mnist/lenet_iter_11000.solverstate \
     $@
 
- ./build/tools/caffe train \
+    ./build/tools/caffe train \
     --solver=examples/mnist/lenet_solver_13000.prototxt \
     --snapshot=examples/mnist/lenet_iter_12000.solverstate \
     $@
 
-     ./build/tools/caffe train \
+    ./build/tools/caffe train \
     --solver=examples/mnist/lenet_solver_14000.prototxt \
     --snapshot=examples/mnist/lenet_iter_13000.solverstate \
     $@
 
-     ./build/tools/caffe train \
+    ./build/tools/caffe train \
     --solver=examples/mnist/lenet_solver_15000.prototxt \
     --snapshot=examples/mnist/lenet_iter_14000.solverstate \
     $@

@@ -5,10 +5,6 @@
 
 #include "caffe/layers/conv_layer.hpp"
 
-#include "opencv2/highgui.hpp"
-#include "opencv2/core.hpp"
-#include "opencv2/imgproc.hpp"
-
 namespace caffe {
 
 template <typename Dtype>
@@ -110,12 +106,12 @@ void ConvolutionLayer<Dtype>::ComputeBlobMask(float ratio) {
     // added by xujiang, 02/08/2017
     for (vector< vector<int>* >::iterator it = this->mask_vec_.begin();
              it != this->mask_vec_.end(); it++) {
-        thr.push_back(0.2);
+        thr.push_back(ONE_BIT_RATIO_CONV); // mask0 will be overwritten later!
     }
     #ifdef TWO_BIT
         for (vector< vector<int>* >::iterator it = this->mask_vec2b_.begin();
                  it != this->mask_vec2b_.end(); it++) {
-            thr2b.push_back(0.05);
+            thr2b.push_back(TWO_BIT_RATIO_CONV);
         }
     #endif
 
@@ -330,40 +326,114 @@ template <typename Dtype>
 void ConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
   // added by xujiang
+  std::ofstream FW;
+  FW.open("./debug_FW_CONV.log", std::fstream::app);
+  const Dtype* fw_weight = this->blobs_[0]->cpu_data();
+  const Dtype* weight = this->blobs_[0]->cpu_data();
   #ifdef XU_CONV
-  // 01/29/2017, FIND BUG, not only inner_product_layer & conv_layer will call this func!!!
-      // will cause segmentation fault!!!
-  if (this->masks_all.size() != 0) {
-      #ifdef KMEANS_CONV
-          Dtype *muweight = this->blobs_[0]->mutable_cpu_data() ;
-      #endif
-      int count = this->blobs_[0]->count() ;
+    // 01/29/2017, FIND BUG, not only inner_product_layer & conv_layer will call this func!!!
+        // will cause segmentation fault!!!
+    if (this->masks_all.size() != 0) {
+        #ifdef KMEANS_CONV
+            Dtype *muweight = this->blobs_[0]->mutable_cpu_data() ;
+        #endif
+        int count = this->blobs_[0]->count() ;
 
-      // 01/29/2017, FIND BUG, not only inner_product_layer & conv_layer will call this func!!!
-      //FD << "@Forward_cpu() count: " << count << "\n" ;
-      //for (int i = 0; i < 16; i++) {
-      //    FD << this->centroids_[i] << " " ;
-      //}
-      //FD << "\n" ;
+        // 01/29/2017, FIND BUG, not only inner_product_layer & conv_layer will call this func!!!
+        //FD << "@Forward_cpu() count: " << count << "\n" ;
+        //for (int i = 0; i < 16; i++) {
+        //    FD << this->centroids_[i] << " " ;
+        //}
+        //FD << "\n" ;
 
-      // FD << "@Forward_cpu() count: " << count << "\n" ;
-      for (int i = 0; i < count; i++) {
-          //FD << this->masks_[i] << " " ;
-          if (this->masks_all[i]) {
-              // weight sharing!!!
-              //FD << "Forward_cpu weight sharing iteration " << i << "\n" ;
-              //FD << this->centroids_[this->indices_[i]] << " " ;
-              #ifdef KMEANS_CONV
-                  muweight[i] = this->centroids_[this->indices_[i]] ;
-              #endif
-          }
-      }
-      //FD << "\n" ;
-  }
+        // FD << "@Forward_cpu() count: " << count << "\n" ;
+        for (int i = 0; i < count; i++) {
+            //FD << this->masks_[i] << " " ;
+            if (this->masks_all[i]) {
+                // weight sharing!!!
+                //FD << "Forward_cpu weight sharing iteration " << i << "\n" ;
+                //FD << this->centroids_[this->indices_[i]] << " " ;
+                #ifdef KMEANS_CONV
+                    muweight[i] = this->centroids_[this->indices_[i]] ;
+                #endif
+            }
+        }
+        //FD << "\n" ;
+
+        // BUG find, 03/04/2017, though weight_diff = 0, weight will still be updated!
+        // force to prune in Forward process!!!
+        for (int i = 0; i < count; i++) {
+            if (!this->masks_[i]) {
+                muweight[i] = 0;
+            #ifdef ONE_BIT
+            } else if (!this->masks1_[i]) {
+                if (weight[i] > 0) {
+                    muweight[i] = 1/pow(2, 1);
+                } else {
+                    muweight[i] = -1 * 1/pow(2, 1);
+                }
+            } else if (!this->masks2_[i]) {
+                if (weight[i] > 0) {
+                    muweight[i] = 1/pow(2, 2);
+                } else {
+                    muweight[i] = -1 * 1/pow(2, 2);
+                }
+            } else if (!this->masks3_[i]) {
+                if (weight[i] > 0) {
+                    muweight[i] = 1/pow(2, 3);
+                } else {
+                    muweight[i] = -1 * 1/pow(2, 3);
+                }
+            } else if (!this->masks4_[i]) {
+                if (weight[i] > 0) {
+                    muweight[i] = 1/pow(2, 4);
+                } else {
+                    muweight[i] = -1 * 1/pow(2, 4);
+                }
+            } else if (!this->masks5_[i]) {
+                if (weight[i] > 0) {
+                    muweight[i] = 1/pow(2, 5);
+                } else {
+                    muweight[i] = -1 * 1/pow(2, 5);
+                }
+            #endif
+            #ifdef TWO_BIT
+            } else if (!this->masks5p6_[i]) {
+                if (weight[i] > 0) {
+                    muweight[i] = 1/pow(2, 5) + 1/pow(2, 6);
+                } else {
+                    muweight[i] = -1 * (1/pow(2, 5) + 1/pow(2, 6));
+                }
+            } else if (!this->masks5p7_[i]) {
+                if (weight[i] > 0) {
+                    muweight[i] = 1/pow(2, 5) + 1/pow(2, 7);
+                } else {
+                    muweight[i] = -1 * (1/pow(2, 5) + 1/pow(2, 7));
+                }
+            #endif
+            }
+        }
+
+        #ifdef XU_DEBUG
+            // top.size() == 1
+            //FW << "count: " << this->blobs_[0]->count() << "\n";
+            //FW << "bottom.size(): " << bottom.size() << "\n";
+            //FW << "top.size(): " << top.size() << "\n";
+            FW << "Before Forward() centroid\n";
+            for (int i = 0; i < CONV_QUNUM; i++) {
+                FW << this->centroids_[i] << " ";
+            }
+            FW << "\n\n";
+            //for (int i = 0; i < this->blobs_[0]->count(); i++) {
+            //    FW << fw_weight[i] << " ";
+            //}
+            //FW << "\n\n";
+        #endif
+    }
   #endif
   // added by xujiang
 
-  const Dtype* weight = this->blobs_[0]->cpu_data();
+  //const Dtype* weight = this->blobs_[0]->cpu_data();
   for (int i = 0; i < bottom.size(); ++i) {
     const Dtype* bottom_data = bottom[i]->cpu_data();
     Dtype* top_data = top[i]->mutable_cpu_data();
@@ -376,6 +446,20 @@ void ConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       }
     }
   }
+
+  // added by xujiang
+  #ifdef XU_CONV
+  #ifdef XU_DEBUG
+    if (this->masks_all.size() != 0) {
+      FW << "After Forward()\n";
+      for (int i = 0; i < this->blobs_[0]->count(); i++) {
+          FW << fw_weight[i] << " ";
+      }
+      FW << "\n";
+      FW << "\n";
+    }
+  #endif
+  #endif
 }
 
 template <typename Dtype>
@@ -383,6 +467,10 @@ void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
       const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom) {
   const Dtype* weight = this->blobs_[0]->cpu_data();
   Dtype* weight_diff = this->blobs_[0]->mutable_cpu_diff();
+
+  std::ofstream BW; 
+  BW.open("./debug_BW_CONV.log", std::fstream::app);
+  const Dtype* bw_weight = this->blobs_[0]->cpu_data();
 
   for (int i = 0; i < top.size(); ++i) {
     const Dtype* top_diff = top[i]->cpu_diff();
@@ -396,6 +484,19 @@ void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
       }
     }
     if (this->param_propagate_down_[0] || propagate_down[i]) {
+
+      #ifdef XU_CONV
+      #ifdef XU_DEBUG
+          //if (this->masks_all.size() != 0) {
+          //    BW << "Before Backward() centroid_update\n";
+          //    for (int i = 0; i < CONV_QUNUM; i++) {
+          //        BW << this->centroids_[i] << " ";
+          //    }
+          //    BW << "\n\n";
+          //}
+      #endif
+      #endif
+
       for (int n = 0; n < this->num_; ++n) {
         // gradient w.r.t. weight. Note that we will accumulate diffs.
         if (this->param_propagate_down_[0]) {
@@ -444,11 +545,11 @@ void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
                     #endif
                 }
             }
-        }
 
-        //for (int j=0; j< CONV_QUNUM; j++){
-        //	FD << " centroids: " << this->centroids_[j] <<"\n";
-        //}
+            //for (int j=0; j< CONV_QUNUM; j++){
+            //	FD << " centroids: " << this->centroids_[j] <<"\n";
+            //}
+        }
         #endif
         // added by xujiang
 
@@ -458,6 +559,33 @@ void ConvolutionLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
               bottom_diff + n * this->bottom_dim_);
         }
       }
+
+      #ifdef XU_CONV
+      #ifdef XU_DEBUG
+          if (this->masks_all.size() != 0) {
+              // top.size() == 1
+              //BW << "count: " << this->blobs_[0]->count() << "\n";
+              //BW << "top.size(): " << top.size() << "\n";
+              //BW << "bottom.size(): " << bottom.size() << "\n";
+              BW << "After Backward() centroid_update\n";
+              for (int i = 0; i < CONV_QUNUM; i++) {
+                  BW << this->centroids_[i] << " ";
+              }
+              BW << "\n\n";
+              BW << "After Backward() weight\n";
+              for (int i = 0; i < this->blobs_[0]->count(); i++) {
+                  BW << bw_weight[i] << " ";
+              }
+              BW << "\n\n";
+              BW << "After Backward() weight_diff\n";
+              const Dtype* bw_weight_diff = this->blobs_[0]->cpu_diff(); //not cpu_mutable_diff()
+              for (int i = 0; i < this->blobs_[0]->count(); i++) {
+                  BW << bw_weight_diff[i] << " ";
+              }
+              BW << "\n\n";
+          }
+      #endif
+      #endif
     }
   }
 }

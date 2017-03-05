@@ -138,12 +138,12 @@ void InnerProductLayer<Dtype>::ComputeBlobMask(float ratio) {
 
     for (vector< vector<int>* >::iterator it = this->mask_vec_.begin();
              it != this->mask_vec_.end(); it++) {
-        thr.push_back(0.2);
+        thr.push_back(ONE_BIT_RATIO_FC);
     }
     #ifdef TWO_BIT
         for (vector< vector<int>* >::iterator it = this->mask_vec2b_.begin();
                  it != this->mask_vec2b_.end(); it++) {
-            thr2b.push_back(0.08);
+            thr2b.push_back(TWO_BIT_RATIO_FC);
         }
     #endif
 
@@ -385,6 +385,7 @@ void InnerProductLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     const vector<Blob<Dtype>*>& top) {
 
   // added by xujiang
+  const Dtype* weight = this->blobs_[0]->cpu_data();
   #ifdef XU_FC
   if (this->masks_all.size() != 0) {
       #ifdef KMEANS_FC
@@ -400,13 +401,65 @@ void InnerProductLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
               #endif
           }
       }
+
+      for (int i = 0; i < count; i++) {
+          if (!this->masks_[i]) {
+              muweight[i] = 0;
+          #ifdef ONE_BIT
+          } else if (!this->masks1_[i]) {
+              if (weight[i] > 0) {
+                  muweight[i] = 1/pow(2, 1);
+              } else {
+                  muweight[i] = -1 * 1/pow(2, 1);
+              }
+          } else if (!this->masks2_[i]) {
+              if (weight[i] > 0) {
+                  muweight[i] = 1/pow(2, 2);
+              } else {
+                  muweight[i] = -1 * 1/pow(2, 2);
+              }
+          } else if (!this->masks3_[i]) {
+              if (weight[i] > 0) {
+                  muweight[i] = 1/pow(2, 3);
+              } else {
+                  muweight[i] = -1 * 1/pow(2, 3);
+              }
+          } else if (!this->masks4_[i]) {
+              if (weight[i] > 0) {
+                  muweight[i] = 1/pow(2, 4);
+              } else {
+                  muweight[i] = -1 * 1/pow(2, 4);
+              }
+          } else if (!this->masks5_[i]) {
+              if (weight[i] > 0) {
+                  muweight[i] = 1/pow(2, 5);
+              } else {
+                  muweight[i] = -1 * 1/pow(2, 5);
+              }
+          #endif
+          #ifdef TWO_BIT
+          } else if (!this->masks5p6_[i]) {
+              if (weight[i] > 0) {
+                  muweight[i] = 1/pow(2, 5) + 1/pow(2, 6);
+              } else {
+                  muweight[i] = -1 * (1/pow(2, 5) + 1/pow(2, 6));
+              }
+          } else if (!this->masks5p7_[i]) {
+              if (weight[i] > 0) {
+                  muweight[i] = 1/pow(2, 5) + 1/pow(2, 7);
+              } else {
+                  muweight[i] = -1 * (1/pow(2, 5) + 1/pow(2, 7));
+              }
+          #endif
+          }
+      }
   }
   #endif
   // added by xujiang
 
   const Dtype* bottom_data = bottom[0]->cpu_data();
   Dtype* top_data = top[0]->mutable_cpu_data();
-  const Dtype* weight = this->blobs_[0]->cpu_data();
+  //const Dtype* weight = this->blobs_[0]->cpu_data();
   caffe_cpu_gemm<Dtype>(CblasNoTrans, transpose_ ? CblasNoTrans : CblasTrans,
       M_, N_, K_, (Dtype)1.,
       bottom_data, weight, (Dtype)0., top_data);
