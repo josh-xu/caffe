@@ -483,17 +483,44 @@ string Solver<Dtype>::SnapshotToBinaryProto() {
           std::ofstream ofile;
           ofile.open("./train_model_paras.log", std::fstream::app);
 
+          std::ofstream ofile_centroids;
+          std::ofstream ofile_indices;
+          //std::ofstream ofile_masks_all;
+          std::ofstream ofile_masks;
+          std::ofstream ofile_masks1;
+          std::ofstream ofile_masks2;
+          std::ofstream ofile_masks3;
+          std::ofstream ofile_masks4;
+          std::ofstream ofile_masks5;
+          std::ofstream ofile_masks5p6;
+          std::ofstream ofile_masks5p7;
+          ofile_centroids.open("./train_model_paras_centroids.log", std::fstream::app);
+          ofile_indices.open("./train_model_paras_indices.log", std::fstream::app);
+          //ofile_masks_all.open("./train_model_paras_masks_all.log", std::fstream::app);
+          ofile_masks.open("./train_model_paras_masks.log", std::fstream::app);
+          ofile_masks1.open("./train_model_paras_masks1.log", std::fstream::app);
+          ofile_masks2.open("./train_model_paras_masks2.log", std::fstream::app);
+          ofile_masks3.open("./train_model_paras_masks3.log", std::fstream::app);
+          ofile_masks4.open("./train_model_paras_masks4.log", std::fstream::app);
+          ofile_masks5.open("./train_model_paras_masks5.log", std::fstream::app);
+          ofile_masks5p6.open("./train_model_paras_masks5p6.log", std::fstream::app);
+          ofile_masks5p7.open("./train_model_paras_masks5p7.log", std::fstream::app);
+
           #if defined(KMEANS_CONV) && defined(KMEANS_FC)
               ofile << "centroids_[]:\n" ;
+              ofile_centroids << "@@@" << source_layer.name() << "\n";
               for (auto it = (net_->layers())[target_layer_id]->centroids_.begin();
                        it != (net_->layers())[target_layer_id]->centroids_.end(); it++) {
                   ofile << *it << " ";
+                  ofile_centroids << *it << "\n";
               }
               ofile << "\n" ;
               ofile << "indices_[]:\n" ;
+              ofile_indices << "@@@" << source_layer.name() << "\n";
               for (auto it = (net_->layers())[target_layer_id]->indices_.begin();
                        it != (net_->layers())[target_layer_id]->indices_.end(); it++) {
                   ofile << *it << " ";
+                  ofile_indices << *it << "\n";
               }
               ofile << "\n" ;
           #endif
@@ -576,8 +603,74 @@ string Solver<Dtype>::SnapshotToBinaryProto() {
               ofile << "\n" ;
           #endif
 
+          //ofile_masks_all << "@@@" << source_layer.name() << "\n";
+          //for (auto it = (net_->layers())[target_layer_id]->masks_all.begin();
+          //         it != (net_->layers())[target_layer_id]->masks_all.end(); it++) {
+          //    ofile_masks_all << *it << "\n";
+          //    //std::cout << (net_->layers())[target_layer_id]->masks_all.size() << " " << ((net_->layers())[target_layer_id]->blobs())[0]->count() << "\n";
+          //}
+
+          ofile_masks << "@@@" << source_layer.name() << "\n";
+          for (auto it = (net_->layers())[target_layer_id]->masks_.begin();
+                   it != (net_->layers())[target_layer_id]->masks_.end(); it++) {
+              ofile_masks << *it << "\n";
+          }
+
+          ofile_masks1 << "@@@" << source_layer.name() << "\n";
+          for (auto it = (net_->layers())[target_layer_id]->masks1_.begin();
+                   it != (net_->layers())[target_layer_id]->masks1_.end(); it++) {
+              ofile_masks1 << *it << "\n";
+          }
+
+          ofile_masks2 << "@@@" << source_layer.name() << "\n";
+          for (auto it = (net_->layers())[target_layer_id]->masks2_.begin();
+                   it != (net_->layers())[target_layer_id]->masks2_.end(); it++) {
+              ofile_masks2 << *it << "\n";
+          }
+
+          ofile_masks3 << "@@@" << source_layer.name() << "\n";
+          for (auto it = (net_->layers())[target_layer_id]->masks3_.begin();
+                   it != (net_->layers())[target_layer_id]->masks3_.end(); it++) {
+              ofile_masks3 << *it << "\n";
+          }
+
+          ofile_masks4 << "@@@" << source_layer.name() << "\n";
+          for (auto it = (net_->layers())[target_layer_id]->masks4_.begin();
+                   it != (net_->layers())[target_layer_id]->masks4_.end(); it++) {
+              ofile_masks4 << *it << "\n";
+          }
+
+          ofile_masks5 << "@@@" << source_layer.name() << "\n";
+          for (auto it = (net_->layers())[target_layer_id]->masks5_.begin();
+                   it != (net_->layers())[target_layer_id]->masks5_.end(); it++) {
+              ofile_masks5 << *it << "\n";
+          }
+
+          ofile_masks5p6 << "@@@" << source_layer.name() << "\n";
+          for (auto it = (net_->layers())[target_layer_id]->masks5p6_.begin();
+                   it != (net_->layers())[target_layer_id]->masks5p6_.end(); it++) {
+              ofile_masks5p6 << *it << "\n";
+          }
+
+          ofile_masks5p7 << "@@@" << source_layer.name() << "\n";
+          for (auto it = (net_->layers())[target_layer_id]->masks5p7_.begin();
+                   it != (net_->layers())[target_layer_id]->masks5p7_.end(); it++) {
+              ofile_masks5p7 << *it << "\n";
+          }
+
           ofile << "################# The end of " << source_layer.name() << " layer data ####################\n" << std::endl;
           ofile.close();
+          ofile_centroids.close();
+          ofile_indices.close();
+          //ofile_masks_all.close();
+          ofile_masks.close();
+          ofile_masks1.close();
+          ofile_masks2.close();
+          ofile_masks3.close();
+          ofile_masks4.close();
+          ofile_masks5.close();
+          ofile_masks5p6.close();
+          ofile_masks5p7.close();
       }
   }
   // added by xujiang, 02/13/2017

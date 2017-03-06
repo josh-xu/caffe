@@ -655,7 +655,7 @@ clean: clean_log
 	@- $(RM) $(MAT$(PROJECT)_SO)
 
 clean_log:
-	@- $(RM) output_*.log params.txt train_process.log train_model_paras.log debug_*.log
+	@- $(RM) output_*.log params.txt train_process.log train_model_paras*.log debug_*.log
 
 clean_model:
 	@- $(RM) \

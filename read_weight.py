@@ -36,7 +36,8 @@ MODEL_FILE = '../caffe/examples/mnist/lenet.prototxt'
 #MODEL_FILE = '../ristretto/examples/mnist/lenet_quantized.prototxt'
 #MODEL_FILE = '../ristretto/examples/mnist/lenet_quantized_2n.prototxt'
 # the trained caffe model
-PRETRAIN_FILE = '../caffe/examples/mnist/lenet_iter_12000.caffemodel'
+PRETRAIN_FILE = '../caffe/python_modified.caffemodel'
+#PRETRAIN_FILE = '../caffe/examples/mnist/lenet_iter_12000.caffemodel'
 #PRETRAIN_FILE = '../caffe_github/examples/mnist/lenet_iter_10000.caffemodel'
 #PRETRAIN_FILE = '../ristretto/examples/mnist/ristretto_lenet_iter_10000.caffemodel'
 #PRETRAIN_FILE = '../ristretto/examples/mnist/ristretto_lenet_2n_iter_10000.caffemodel'
@@ -72,7 +73,7 @@ for param_name in net.params.keys():
     #drawHist(weight)
 
     for w in weight:
-        pf.write('%.10f, ' % w)
+        pf.write('%.6f, ' % w)
         #pf.write('%s, ' % float(w))
         weight_final.append(float(w))
 
@@ -81,7 +82,7 @@ for param_name in net.params.keys():
     # convert the multi-dimension to single-dimension
     bias.shape = (-1, 1)
     for b in bias:
-        pf.write('%f, ' % b)
+        pf.write('%.6f, ' % b)
 
     pf.write('\n\n')
 
